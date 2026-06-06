@@ -5,6 +5,7 @@ project(wscpp_tests_unit LANGUAGES CXX)
 add_executable(wscpp_test_unit
     test_version.cpp
     test_asio.cpp
+    test_openssl.cpp
 )
 
 target_link_libraries(wscpp_test_unit
