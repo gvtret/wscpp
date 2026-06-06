@@ -7,6 +7,7 @@ add_executable(wscpp_test_unit
     test_asio.cpp
     test_openssl.cpp
     test_frame.cpp
+    test_connection.cpp
 )
 
 target_link_libraries(wscpp_test_unit
