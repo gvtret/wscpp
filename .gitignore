@@ -1,0 +1,50 @@
+# C++ project
+*.o
+*.a
+*.so
+*.exe
+*.out
+*.bin
+*.log
+*.cache
+*.swp
+*~
+
+# Build directories
+build/
+cmake-build-*/
+*.cmake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# IDE
+.idea/
+.vscode/
+*.sln
+*.vcxproj
+*.pro
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+*.gcov
+*.gcno
+*.gcda
+
+# Documentation
+docs/_build/
+
+# Version file (optional - uncomment if you want to ignore)
+# VERSION
+
+# Release artifacts
+*.tar.gz
+*.zip
+release/
