@@ -1,13 +1,13 @@
 # wscpp — User Guide
 
-Lightweight WebSocket client/server library for C++11 with optional TLS (`wss://`).
+Lightweight WebSocket client/server library for **`C++11`** with optional TLS (`wss://`).
 
 ## Requirements
 
-- C++11 compiler (GCC 4.8+, Clang 3.3+, MSVC 2015+)
+- **`C++11`** compiler (GCC 4.8+, Clang 3.3+, MSVC 2015+)
 - CMake 3.10+
 - OpenSSL 1.0.1+
-- Internet access on first configure (ASIO fetched via CMake FetchContent)
+- Internet access on first configure when using ASIO transport (default) or when building tests/benchmarks
 
 ## Build and install
 
@@ -19,10 +19,18 @@ cmake --build build
 sudo cmake --install build   # optional
 ```
 
+Linux-only build without ASIO (POSIX sockets + OpenSSL TLS):
+
+```bash
+cmake -B build -DWSCPP_USE_ASIO=OFF
+cmake --build build
+```
+
 Options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `WSCPP_USE_ASIO` | ON | ASIO transport; OFF = Linux POSIX sockets (Linux only) |
 | `WSCPP_BUILD_TESTS` | ON | Unit, integration, regression tests |
 | `WSCPP_BUILD_EXAMPLES` | ON | Example programs |
 | `WSCPP_BUILD_DOCS` | ON | Doxygen API reference |
@@ -33,6 +41,15 @@ Run tests:
 ```bash
 cd build && ctest --output-on-failure
 ```
+
+TLS integration tests require locally generated certificates (never committed):
+
+```bash
+bash scripts/gen-test-tls-certs.sh
+cd build && ctest -R TlsIntegration --output-on-failure
+```
+
+See [TLS guide](TLS.md) for CA/server/client certificate creation.
 
 ## Quick start
 
@@ -74,6 +91,7 @@ See [examples/README.md](../examples/README.md) for runnable programs.
 ### `wscpp::client`
 
 - `connect(url)` — `ws://` or `wss://` URL
+- `set_ssl_context(shared_ptr<...>)` — custom TLS context before `connect()` (WSS)
 - `send_text` / `send_binary` — send WebSocket frames
 - `close(code, reason)` — graceful close
 - Callbacks: `set_on_open`, `set_on_message`, `set_on_close`, `set_on_error`
@@ -103,11 +121,11 @@ The client uses `verify_none` by default (suitable for self-signed certs in exam
 
 ## FAQ
 
-**Does wscpp support C++11 only?**  
-Yes. The library targets C++11 without requiring newer standards.
+**Does wscpp support `C++11` only?**  
+Yes. The library targets **`C++11`** without requiring newer standards.
 
 **Does it depend on Boost?**  
-No. ASIO is fetched as standalone ASIO 1.20.
+No. With `WSCPP_USE_ASIO=ON` (default), ASIO is fetched as standalone ASIO 1.20. With `WSCPP_USE_ASIO=OFF` on Linux, the library uses native POSIX sockets and does not link ASIO.
 
 **Is permessage-deflate supported?**  
 Yes (v1.1.0, RFC 7692). Call `client::enable_permessage_deflate()` before `connect()`; the server accepts the extension automatically when offered.
@@ -130,6 +148,7 @@ Build docs: `cmake --build build --target docs`, then open `build/docs/html/inde
 ## Links
 
 - [Developer guide](DEVELOPER.md)
+- [TLS / WSS certificates](TLS.md)
 - [Examples](../examples/README.md)
 - [Comparative analysis](../ANALYSIS.md)
 - [Changelog](../CHANGELOG.md)

@@ -23,6 +23,18 @@
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
 **Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
 
+## 2026-06-07 — Benchmark harness refresh
+
+**Done:** `bench_util.hpp` (shared port/banners), `run_benchmarks` CMake target + script; compare targets unified; ANALYSIS refreshed (wscpp linux vs ASIO transport).
+**State:** uncommitted transport + bench changes.
+**Next:** commit transport + benchmarks together.
+
+## 2026-06-07 — Linux POSIX socket transport (WSCPP_USE_ASIO)
+
+**Done:** Transport abstraction via `wscpp/net/transport.hpp`; `WSCPP_USE_ASIO` CMake flag (default ON). OFF builds `linux_socket` + OpenSSL TLS on Linux. Poll-based accept loop; 73/73 tests (linux), 91/91 (asio).
+**State:** `main`, VERSION 1.1.0.
+**Next:** Optional CI matrix job for `WSCPP_USE_ASIO=OFF`.
+
 ## 2026-06-07 — F2: Beast + Simple-WebSocket-Server compare benches
 
 **Done:** `bench_beast_roundtrip` (Boost 1.88, sync echo); `bench_sws_roundtrip` (GitLab SWS `0e1cf67`, standalone ASIO). ANALYSIS.md updated with 7-library numbers. 94/94 tests pass.

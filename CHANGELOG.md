@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Unreleased]
+
+### Added
+- Linux POSIX socket transport (`WSCPP_USE_ASIO=OFF`) with OpenSSL TLS on Linux
+- `wscpp::errc` / `std::error_code` throughout public API (no exceptions in library I/O)
+- TLS integration tests with local PKI generation (`scripts/gen-test-tls-certs.sh`)
+- Dual-transport benchmark harness (`run_benchmarks_both.sh`, `bench_util.hpp`)
+
+### Fixed
+- Linux server accept loop blocking and concurrent socket writes causing flaky integration tests
+- Client WSS connect order (TCP connect before TLS enable on linux path)
+
+### Changed
+- `ANALYSIS.md` dual-transport benchmark tables, table legend for missing values
+- Integration tests default CTest timeout 30s
+
 ## [1.1.0] - 2026-06-07
 
 ### Added
@@ -52,7 +68,7 @@ First stable release: full WebSocket client/server stack, TLS, tests, docs, and 
 - Comparative benchmark vs websocketpp 0.8.2
 - User guide (`docs/README.md`), developer guide (`docs/DEVELOPER.md`)
 - Mandatory Doxygen API documentation (`cmake --build build --target docs`)
-- `ANALYSIS.md` — C++11 WebSocket library catalog and benchmark results
+- `ANALYSIS.md` — **`C++11`** WebSocket library catalog and benchmark results
 - `scripts/bump_version.sh`, GitVerse CI workflow
 - Issue/PR templates and Code of Conduct
 

@@ -33,15 +33,28 @@
 
 ```bash
 cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON
-cmake --build build --target benchmarks compare_benchmarks
+cmake --build build --target run_benchmarks
+# or: benchmarks compare_benchmarks
 ctest --timeout 30
 ```
 
 См. `ANALYSIS.md` (методология) и `benchmarks/compare/README.md` (внешние библиотеки).
 
+## TLS-тесты
+
+Сертификаты **не хранятся в репозитории**. Перед прогоном:
+
+```bash
+bash scripts/gen-test-tls-certs.sh
+cmake -B build -DWSCPP_BUILD_TESTS=ON && cmake --build build
+cd build && ctest -R TlsIntegration --output-on-failure
+```
+
+Без fixtures тесты `TlsIntegration.*` пропускаются (`GTEST_SKIP`). Подробности: [docs/TLS.md](docs/TLS.md).
+
 ## Стандарты кода
 
-- Используйте C++11 или выше
+- Используйте **`C++11`** или выше
 - Следуйте стилю кода существующих файлов
 - Добавляйте комментарии для сложных участков
 - Пишите тесты для новых функций

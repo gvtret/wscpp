@@ -41,7 +41,7 @@ Layer responsibilities:
 
 ## Code conventions
 
-- C++11, no exceptions in hot paths where avoidable; public API may throw on fatal I/O errors
+- **`C++11`**, no exceptions in hot paths where avoidable; public API may throw on fatal I/O errors
 - `pimpl` idiom for `client`, `server`, `connection`, `asio_socket`
 - Match existing naming: `snake_case` methods, `opcode` enum in `frame` namespace
 - Protocol changes require RFC cross-check (see below)

@@ -1,12 +1,12 @@
 # wscpp
 
-Lightweight WebSocket stack for **C++11** with optional TLS (`wss://`).
+Lightweight WebSocket stack for **`C++11`** with optional TLS (`wss://`).
 
 [![CI](https://github.com/gvtret/wscpp/actions/workflows/ci.yml/badge.svg)](https://github.com/gvtret/wscpp/actions/workflows/ci.yml)
 
 ## Features
 
-- C++11, no Boost required (standalone ASIO 1.20 via FetchContent)
+- **`C++11`**, no Boost required (standalone ASIO 1.20 via FetchContent)
 - OpenSSL TLS for secure WebSocket
 - Client and server with callback-based API
 - RFC 6455 frame layer with regression test vectors
@@ -31,7 +31,7 @@ cd build && ctest --output-on-failure
 | [User guide](docs/README.md) | Install, quick start, FAQ |
 | [Developer guide](docs/DEVELOPER.md) | Architecture, testing, releases |
 | [Examples](examples/README.md) | ws:// and wss:// echo programs |
-| [Analysis](ANALYSIS.md) | C++11 WebSocket library comparison |
+| [Analysis](ANALYSIS.md) | **`C++11`** WebSocket library comparison |
 | [Changelog](CHANGELOG.md) | Release history |
 | API reference | `cmake --build build --target docs` → `build/docs/html/index.html` |
 
