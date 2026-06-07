@@ -33,5 +33,5 @@ Checks: >
   -misc-use-internal-linkage
 
 WarningsAsErrors: '*'
-HeaderFilterRegex: 'include/wscpp/.*|src/.*'
+HeaderFilterRegex: '.*/wscpp/(include/wscpp|src)/.*'
 FormatStyle: file

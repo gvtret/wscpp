@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Verify C/C++ sources match .clang-format (repository root).
+# Only first-party paths are checked; third-party trees (FetchContent, rust/, build/) are excluded.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -12,8 +13,8 @@ fi
 
 mapfile -d '' files < <(
     find include src examples benchmarks tests \
-        -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) \
-        -print0 2>/dev/null | sort -z
+        \( -path '*/rust/*' -o -path '*/build/*' -o -path '*/_deps/*' -o -path '*/third_party/*' \) -prune \
+        -o -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) -print0 2>/dev/null | sort -z
 )
 
 if [ "${#files[@]}" -eq 0 ]; then

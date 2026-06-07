@@ -42,7 +42,7 @@ bash benchmarks/run_remote_network_compare.sh   # LAN compare (remote echo serve
 ctest --timeout 30
 ```
 
-Перед PR локально: `./scripts/ci/check-format.sh`, `./scripts/ci/clang-tidy.sh build` (нужен `compile_commands.json`).
+Перед PR локально: `./scripts/ci/check-format.sh`, `./scripts/ci/clang-tidy.sh build` (нужен `compile_commands.json`). Скрипты проверяют только first-party код (`include/`, `src/`, …); third-party (spdlog, ASIO из FetchContent, `rust/`, `build/_deps/`) не форматируются и не линтуются.
 
 См. `ANALYSIS.md` (методология) и `benchmarks/compare/README.md` (внешние библиотеки).
 

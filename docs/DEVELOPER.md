@@ -70,7 +70,9 @@ CMake options (selected):
 | `WSCPP_ENABLE_LOGGING` | ON | spdlog error diagnostics to stderr; OFF = no-op stubs |
 | `WSCPP_BUILD_BENCHMARKS` | OFF | Micro-benchmarks under `benchmarks/` |
 
-When logging is enabled, spdlog v1.14.1 is fetched via FetchContent (header-only in `src/log.cpp` only, not exported as a public link dependency). Public API: `wscpp/log.hpp` (`set_log_level`). Instrumentation lives in `connection`, `server`, and `net/*` error paths.
+When logging is enabled, spdlog v1.14.1 is fetched via FetchContent (header-only in `src/log.cpp` only, not exported as a public link dependency). The spdlog include path is marked `SYSTEM` so CI clang-tidy does not analyze third-party headers. Public API: `wscpp/log.hpp` (`set_log_level`). Instrumentation lives in `connection`, `server`, and `net/*` error paths.
+
+CI format/lint scripts scan only first-party trees; FetchContent deps under `build/_deps/` are excluded.
 
 Targets:
 

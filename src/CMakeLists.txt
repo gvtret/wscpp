@@ -61,7 +61,7 @@ target_link_libraries(wscpp
 
 if(WSCPP_ENABLE_LOGGING)
     target_compile_definitions(wscpp PRIVATE WSCPP_ENABLE_LOGGING=1)
-    target_include_directories(wscpp PRIVATE ${spdlog_SOURCE_DIR}/include)
+    target_include_directories(wscpp SYSTEM PRIVATE ${spdlog_SOURCE_DIR}/include)
 else()
     target_compile_definitions(wscpp PRIVATE WSCPP_ENABLE_LOGGING=0)
 endif()
