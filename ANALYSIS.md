@@ -255,10 +255,73 @@ cmake --build build-asio --target run_benchmarks
 | C codebase / mature ops stack | **libwebsockets** |
 | Need permessage-deflate now | **wscpp** v1.1+, IXWebSocket, Beast, libwebsockets |
 
+## C++ vs Rust implementations
+
+Side-by-side comparison of **wscpp** (C++11, v1.1.0) and **ws-rs** (Rust, `feature/rust-impl` v0.3.1). Full Rust peer catalog: [ANALYSIS_RUST.md](ANALYSIS_RUST.md). Versions are **independent** SemVer lines (`VERSION` vs `rust/VERSION`).
+
+### Architecture
+
+| Layer | wscpp (C++) | ws-rs (Rust) |
+|-------|-------------|--------------|
+| Framing | `wscpp::frame::parser` / `builder` | `ws_rs::frame::Parser` / `FrameBuilder` |
+| Handshake | `wscpp::handshake` | `ws_rs::handshake` |
+| Connection | `wscpp::connection` (thread + transport) | `ws_rs::connection` (tokio `TcpStream`) |
+| Public API | `wscpp::client`, `wscpp::server` | `ws_rs::client::Client`, `ws_rs::server::Server` |
+| Errors | `std::error_code` | `Result<T, ws_rs::Error>` |
+| I/O runtime | ASIO or POSIX poll | tokio async |
+
+### Feature parity (current)
+
+| Feature | wscpp | ws-rs |
+|---------|-------|-------|
+| RFC 6455 framing | yes | yes |
+| Opening handshake | yes | yes |
+| ws:// echo client/server | yes | yes |
+| wss:// TLS | yes (OpenSSL) | yes (rustls) |
+| permessage-deflate (RFC 7692) | yes (v1.1.0) | yes (v0.3.0) |
+| Dual transport (ASIO / linux) | yes | n/a (tokio only) |
+| Regression vectors §5.7 | 6 tests | 6 tests (ported) |
+
+### Localhost benchmarks (indicative)
+
+| Scenario | wscpp (linux) | wscpp (ASIO) | ws-rs |
+|----------|---------------|--------------|-------|
+| Echo p50 (text ping, 100 samples) | 0.25 ms | 0.25 ms | 0.31 ms |
+| Echo p99 | 0.36 ms | 0.32 ms | 0.68 ms |
+| 64 KiB throughput (100 iter) | 92 MB/s | 82 MB/s | 73 MB/s |
+| Frame build 1 MiB (50 iter) | — [d] | — [d] | 8416 MB/s |
+| Frame parse 1 MiB (50 iter) | — [d] | — [d] | 18737 MB/s |
+
+**Footnotes:** [d] C++ reports echo only in `bench_roundtrip`; 1 MiB frame numbers from `bench_frame_parse` (ws-rs uses same harness). See [ANALYSIS_RUST.md](ANALYSIS_RUST.md).
+
+### LAN benchmarks (Rust peers, `run_remote_network_compare.sh`)
+
+| Library | p50 | p99 | 64 KiB throughput |
+|---------|-----|-----|-------------------|
+| ws-rs | 0.34 ms | 0.80 ms | 32 MB/s |
+| tokio-tungstenite | 0.35 ms | 0.46 ms | 33 MB/s |
+| fastwebsockets | 0.33 ms | 0.47 ms | 31 MB/s |
+| tokio-websockets | 0.37 ms | 0.63 ms | 30 MB/s |
+
+Echo server on `192.168.1.165`, client local (WSL2); same topology as C++ LAN suite.
+
+### When to use which
+
+| Goal | Recommendation |
+|------|----------------|
+| Embedded C++11, minimal binary | **wscpp** linux transport |
+| Existing C++ ASIO codebase | **wscpp** ASIO or **websocketpp** |
+| Rust + tokio service | **tokio-tungstenite** (mature) or **ws-rs** (RFC parity with wscpp) |
+| Cross-language RFC regression suite | **wscpp** + **ws-rs** share §5.7 vectors |
+
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-06-07 | Rust LAN compare (4 libraries on 192.168.1.165) |
+| 2026-06-07 | ws-rs C++-parity benchmark harness + numbers |
+| 2026-06-07 | ws-rs echo + tokio-tungstenite compare numbers |
+| 2026-06-07 | C++ vs Rust comparison (ws-rs on `feature/rust-impl`) |
 | 2026-06-07 | Initial catalog (F0) |
 | 2026-06-07 | Post-RFC gate numbers; wscpp + websocketpp |
 | 2026-06-07 | UTF-8 §8.1; v1.0.2 baseline |

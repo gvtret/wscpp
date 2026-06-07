@@ -1,0 +1,91 @@
+[package]
+name = "ws-rs-benches"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "bench_frame_parse"
+path = "src/bin/bench_frame_parse.rs"
+
+[[bin]]
+name = "bench_masking"
+path = "src/bin/bench_masking.rs"
+
+[[bin]]
+name = "bench_roundtrip"
+path = "src/bin/bench_roundtrip.rs"
+
+[[bin]]
+name = "bench_blocking_roundtrip"
+path = "src/bin/bench_blocking_roundtrip.rs"
+
+[[bin]]
+name = "bench_blocking_echo_server"
+path = "src/bin/bench_blocking_echo_server.rs"
+
+[[bin]]
+name = "bench_blocking_roundtrip_net"
+path = "src/bin/bench_blocking_roundtrip_net.rs"
+
+[[bin]]
+name = "bench_echo_server"
+path = "src/bin/bench_echo_server.rs"
+
+[[bin]]
+name = "bench_roundtrip_net"
+path = "src/bin/bench_roundtrip_net.rs"
+
+[[bin]]
+name = "bench_tokio_tungstenite_roundtrip"
+path = "src/bin/bench_tokio_tungstenite_roundtrip.rs"
+
+[[bin]]
+name = "bench_tokio_tungstenite_echo_server"
+path = "src/bin/bench_tokio_tungstenite_echo_server.rs"
+
+[[bin]]
+name = "bench_tokio_tungstenite_roundtrip_net"
+path = "src/bin/bench_tokio_tungstenite_roundtrip_net.rs"
+
+[[bin]]
+name = "bench_fastwebsockets_roundtrip"
+path = "src/bin/bench_fastwebsockets_roundtrip.rs"
+
+[[bin]]
+name = "bench_fastwebsockets_echo_server"
+path = "src/bin/bench_fastwebsockets_echo_server.rs"
+
+[[bin]]
+name = "bench_fastwebsockets_roundtrip_net"
+path = "src/bin/bench_fastwebsockets_roundtrip_net.rs"
+
+[[bin]]
+name = "bench_tokio_websockets_roundtrip"
+path = "src/bin/bench_tokio_websockets_roundtrip.rs"
+
+[[bin]]
+name = "bench_tokio_websockets_echo_server"
+path = "src/bin/bench_tokio_websockets_echo_server.rs"
+
+[[bin]]
+name = "bench_tokio_websockets_roundtrip_net"
+path = "src/bin/bench_tokio_websockets_roundtrip_net.rs"
+
+[dependencies]
+fastwebsockets = { version = "0.10.0", features = ["upgrade"] }
+futures-util = "0.3"
+http = "1"
+http-body-util = "0.1"
+hyper = "1"
+hyper-util = { version = "0.1", features = ["tokio"] }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.24"
+tokio-websockets = { version = "0.13.2", features = ["client", "server", "sha1_smol", "fastrand"] }
+ws-rs = { path = "../ws-rs" }

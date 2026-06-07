@@ -1,0 +1,83 @@
+[package]
+name = "ws-rs"
+description = "Lightweight RFC 6455 WebSocket client/server (Rust companion to wscpp C++)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+base64 = "0.22"
+bytes = "1"
+rand = "0.8"
+sha1 = "0.10"
+thiserror = "2"
+url = "2"
+
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"], optional = true }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"], optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
+rustls-pemfile = { version = "2", optional = true }
+flate2 = { version = "1", optional = true }
+
+[dev-dependencies]
+rcgen = "0.13"
+serial_test = "3"
+tokio = { version = "1", features = ["full", "test-util"] }
+
+[[test]]
+name = "blocking_echo"
+required-features = ["std-blocking"]
+
+[[test]]
+name = "deflate_echo"
+required-features = ["async", "deflate"]
+
+[[test]]
+name = "fragmented_echo"
+required-features = ["async"]
+
+[[test]]
+name = "integration_echo"
+required-features = ["async"]
+
+[[test]]
+name = "invalid_utf8"
+required-features = ["async"]
+
+[[test]]
+name = "permessage_deflate"
+required-features = ["deflate"]
+
+[[test]]
+name = "ping_pong"
+required-features = ["async"]
+
+[[test]]
+name = "throughput_echo"
+required-features = ["async"]
+
+[[test]]
+name = "tls_echo"
+required-features = ["async", "tls"]
+
+[[test]]
+name = "blocking_tls_echo"
+required-features = ["std-blocking", "blocking-tls"]
+
+[[test]]
+name = "stress"
+required-features = ["async", "stress"]
+
+[features]
+default = ["async", "tls", "deflate", "std-blocking", "blocking-tls"]
+async = ["dep:tokio"]
+tls = ["async", "dep:rustls", "dep:tokio-rustls", "dep:rustls-pemfile"]
+blocking-tls = ["std-blocking", "dep:rustls", "dep:rustls-pemfile"]
+deflate = ["dep:flate2"]
+std-blocking = []
+stress = ["async"]

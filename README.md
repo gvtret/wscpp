@@ -13,6 +13,7 @@ Lightweight WebSocket stack for **`C++11`** with optional TLS (`wss://`).
 - Client and server with callback-based API; `std::error_code` on I/O (no exceptions)
 - Optional internal diagnostics via **spdlog** (`WSCPP_ENABLE_LOGGING`, default ON)
 - RFC 6455 framing + RFC 7692 permessage-deflate (opt-in)
+- **ws-rs** Rust companion crate (`rust/ws-rs`, independent SemVer)
 - CMake build, SemVer versioning, Doxygen API docs
 
 **Version:** 1.1.0
@@ -35,6 +36,8 @@ cd build && ctest --output-on-failure
 | [Developer guide](docs/DEVELOPER.md) | Architecture, testing, releases |
 | [Examples](examples/README.md) | ws:// and wss:// echo programs |
 | [Analysis](ANALYSIS.md) | **`C++11`** WebSocket library comparison |
+| [Rust guide](docs/RUST.md) | **ws-rs** architecture, API, fmt/clippy, releases |
+| [Rust analysis](ANALYSIS_RUST.md) | **ws-rs** benchmarks + peer comparison |
 | [Changelog](CHANGELOG.md) | Release history |
 | [AGENTS.md](AGENTS.md) | Guidelines for AI coding agents working on this repo |
 | API reference | `cmake --build build --target docs` → `build/docs/html/index.html` |

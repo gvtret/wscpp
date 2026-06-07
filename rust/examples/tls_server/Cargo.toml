@@ -1,0 +1,16 @@
+[package]
+name = "tls_server"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "tls_server"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+ws-rs = { path = "../../ws-rs" }

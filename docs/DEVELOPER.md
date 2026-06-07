@@ -44,6 +44,8 @@ Layer responsibilities:
 | TLS | `asio::ssl::context` (ASIO) or `net::openssl_context` (linux transport) |
 | `detail/log` | Optional spdlog backend for internal error diagnostics (`WSCPP_ENABLE_LOGGING`) |
 
+Rust companion: **`rust/ws-rs`** — see [RUST.md](RUST.md) (independent SemVer, not coupled to wscpp `1.x`).
+
 ## Code conventions
 
 - **`C++11`**, public I/O returns `std::error_code` (no exceptions from library connect/send paths)
@@ -70,9 +72,9 @@ CMake options (selected):
 | `WSCPP_ENABLE_LOGGING` | ON | spdlog error diagnostics to stderr; OFF = no-op stubs |
 | `WSCPP_BUILD_BENCHMARKS` | OFF | Micro-benchmarks under `benchmarks/` |
 
-When logging is enabled, spdlog v1.14.1 is fetched via FetchContent (header-only in `src/log.cpp` only, not exported as a public link dependency). The spdlog include path is marked `SYSTEM` so CI clang-tidy does not analyze third-party headers. Public API: `wscpp/log.hpp` (`set_log_level`). Instrumentation lives in `connection`, `server`, and `net/*` error paths.
+When logging is enabled, spdlog v1.14.1 is fetched via FetchContent (header-only in `src/log.cpp` only). The spdlog include path is marked `SYSTEM` so CI clang-tidy skips third-party headers. Public API: `wscpp/log.hpp` (`set_log_level`).
 
-CI format/lint scripts scan only first-party trees; FetchContent deps under `build/_deps/` are excluded.
+CI format/lint scripts scan only first-party trees; FetchContent deps under `build/_deps/` and `rust/target/` are excluded.
 
 Targets:
 
@@ -103,12 +105,13 @@ ctest -R wscpp_test_unit                     # unit suite
 
 ### CI pipeline (GitHub Actions)
 
-Jobs run in order: **format** → **lint** (clang-tidy) → **test** (ASIO + linux transport, GCC + Clang) → **release-build** → **release** (tags `v*` only).
+Jobs run in order: **Rust (ws-rs)** (parallel) → **format** → **lint** (clang-tidy) → **test** (ASIO + linux transport, GCC + Clang) → **release-build** → **release** (tags `v*` only).
 
 Local checks:
 
 ```bash
 ./scripts/ci/check-format.sh
+./scripts/ci/check-rust.sh
 cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build build
 ./scripts/ci/clang-tidy.sh build
 ```
@@ -143,6 +146,20 @@ Add regression vectors in `tests/regression/` for any framing or handshake chang
 5. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
 
 Version is authoritative in the `VERSION` file; CMake generates `wscpp_version.h`.
+
+### ws-rs (Rust workspace)
+
+Full guide: **[docs/RUST.md](RUST.md)** (architecture, features, benchmarks, fmt/clippy policy).
+
+**ws-rs** uses an **independent** SemVer line (`rust/VERSION`, currently `0.4.0`). It is not tied to wscpp `1.x`.
+
+Local checks (warnings as errors):
+
+```bash
+./scripts/ci/check-rust.sh
+```
+
+Release steps: update `ANALYSIS_RUST.md` changelog → `./scripts/bump_rust_version.sh` → `./scripts/ci/check-rust.sh` → `git tag ws-rs-vX.Y.Z`.
 
 ## API Reference (Doxygen)
 

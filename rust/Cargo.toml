@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "ws-rs",
+    "ws-rs-benches",
+    "examples/echo_client",
+    "examples/echo_server",
+    "examples/tls_client",
+    "examples/tls_server",
+]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2021"
+license = "MIT"
+authors = ["ws-rs contributors"]
+repository = "https://github.com/gvtret/wscpp"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+# `warnings = "deny"` is enforced in CI via `RUSTFLAGS="-A missing-docs -D warnings"`.
+
+[workspace.lints.clippy]
+empty_line_after_doc_comments = "deny"
+never_loop = "deny"
+useless_conversion = "deny"
+double_ended_iterator_last = "deny"

@@ -116,8 +116,244 @@
 
 ## 2026-06-07 — spdlog diagnostics backend (v1.1.0, unreleased)
 
-**Done:** Optional internal logging via spdlog (`WSCPP_ENABLE_LOGGING`, default ON). Errors logged to stderr even without `on_error` callback; suppressed close/accept/shutdown failures instrumented. Public `wscpp::set_log_level()`. Docs updated (user + developer guides, CHANGELOG). 94/94 tests pass; roundtrip bench ON vs OFF within noise (~1–3%).
+**Done:** Optional internal logging via spdlog (`WSCPP_ENABLE_LOGGING`, default ON). Errors logged to stderr even without `on_error` callback; suppressed close/accept/shutdown failures instrumented. Public `wscpp::set_log_level()`. CI excludes third-party headers from clang-tidy.
 
 **State:** `master`, VERSION 1.1.0.
 
-**Next:** release tag when unreleased items are batched.
+## 2026-06-07 — R-A1: ws-rs Cargo workspace (feature/rust-impl)
+
+**Done:** `rust/` workspace with `ws-rs` crate skeleton, `error` module, `rust/target/` gitignored.
+
+**Verify:** `cd rust && cargo check -p ws-rs`.
+
+
+## 2026-06-07 — R-B1: ws-rs frame layer (feature/rust-impl)
+
+**Done:** RFC 6455 frame parser, builder, masking (`ws-rs/src/frame/`).
+
+**Verify:** `cd rust && cargo check -p ws-rs`.
+
+
+## 2026-06-07 — R-C2: ws-rs RFC 6455 regression (feature/rust-impl)
+
+**Done:** Ported C++ `test_rfc6455_compliance.cpp` vectors (6 tests).
+
+**Verify:** `cd rust && cargo test -p ws-rs --test rfc6455_compliance`.
+
+
+## 2026-06-07 — R-B2: ws-rs handshake (feature/rust-impl)
+
+**Done:** Sec-WebSocket-Key/Accept, HTTP upgrade parse/build, 4 unit tests.
+
+**Verify:** `cd rust && cargo test -p ws-rs --test handshake`.
+
+
+## 2026-06-07 — R-B4: ws-rs client/server API (feature/rust-impl)
+
+**Done:** tokio `Connection`, `Client`, `Server`, echo session helper (ws:// only).
+
+**Verify:** `cd rust && cargo check -p ws-rs`.
+
+
+## 2026-06-07 — R-C1: ws-rs integration echo (feature/rust-impl)
+
+**Done:** Local client↔server echo roundtrip test.
+
+**Verify:** `cd rust && cargo test -p ws-rs --test integration_echo`.
+
+
+## 2026-06-07 — R-D1: ws-rs echo examples (feature/rust-impl)
+
+**Done:** `examples/echo_client`, `examples/echo_server` binaries.
+
+**Verify:** `cd rust && cargo build -p echo_server -p echo_client`.
+
+
+## 2026-06-07 — R-F1: ws-rs criterion benchmarks (feature/rust-impl)
+
+**Done:** `frame_parse` and `roundtrip` criterion benches.
+
+**Verify:** `cd rust && cargo bench -p ws-rs-benches --bench frame_parse`.
+
+
+## 2026-06-07 — R-F0: Rust WebSocket catalog (feature/rust-impl)
+
+**Done:** `ANALYSIS_RUST.md` — Tier 1/2 Rust libraries, ws-rs positioning, frame micro-benchmarks.
+
+
+## 2026-06-07 — R-F3: C++ vs Rust comparison (feature/rust-impl)
+
+**Done:** `ANALYSIS.md` section comparing wscpp v1.1.0 and ws-rs v0.1.0 (architecture, parity, benchmarks).
+
+
+## 2026-06-07 — R-F2: ws-rs compare benchmarks (feature/rust-impl)
+
+**Done:** `bench_latency` (p50/p99, 100 samples); tokio-tungstenite in `frame_parse` and `roundtrip` criterion benches; shared `ws-rs-benches` server helper.
+
+**Verify:** `cd rust && cargo run -p ws-rs-benches --release --bin bench_latency`.
+
+
+## 2026-06-07 — R-F3 update: benchmark numbers (feature/rust-impl)
+
+**Done:** `ANALYSIS_RUST.md` echo p50/p99 + frame parse vs tungstenite; `ANALYSIS.md` C++ vs Rust table updated (ws-rs 0.32 ms p50).
+
+
+## 2026-06-07 — R-G1: Rust CI job (feature/rust-impl)
+
+**Done:** GitHub Actions `rust` job (`cargo test --workspace`); `rust/README.md`; root README link to ANALYSIS_RUST; CI triggers on `feature/rust-impl`.
+
+
+## 2026-06-07 — fix: ws-rs incremental frame buffer (feature/rust-impl)
+
+**Done:** `connection::read_frame` drains consumed bytes (fixes 64 KiB echo/throughput); `tests/throughput_echo.rs`.
+
+**Verify:** `cd rust && cargo test -p ws-rs --test throughput_echo`.
+
+
+## 2026-06-07 — R-F1 align: C++-parity benchmark harness (feature/rust-impl)
+
+**Done:** `bench_frame_parse`, `bench_masking`, `bench_roundtrip`, `bench_echo_server`, `bench_roundtrip_net`, `bench_tokio_tungstenite_roundtrip`; `rust/benchmarks/run_benchmarks.sh`; removed criterion/bench_latency.
+
+**Verify:** `bash rust/benchmarks/run_benchmarks.sh`.
+
+
+## 2026-06-07 — docs: C++-parity Rust benchmark numbers (feature/rust-impl)
+
+**Done:** `ANALYSIS_RUST.md`, `ANALYSIS.md`, `rust/README.md` updated for `bench_*` harness and localhost numbers.
+
+
+## 2026-06-07 — R-B3: ws-rs wss TLS (feature/rust-impl)
+
+**Done:** `wss://` via rustls/tokio-rustls; `ClientTlsConfig`/`ServerTlsConfig` (PEM, SNI, verify_none default); `transport::IoStream`; TLS→WS upgrade order; `tls_echo` tests (rcgen); `tls_client`/`tls_server` examples.
+
+**Verify:** `cd rust && cargo test -p ws-rs --test tls_echo`.
+
+
+## 2026-06-07 — R-F4: ws-rs LAN network compare (feature/rust-impl)
+
+**Done:** `run_remote_network_compare.sh`; tokio-tungstenite `bench_*_echo_server` + `bench_*_roundtrip_net`; shared `tungstenite_bench` module.
+
+**Verify:** `bash rust/benchmarks/run_remote_network_compare.sh` (needs reachable remote; `WSRS_BENCH_SKIP_BUILD=1` if pre-built).
+
+
+## 2026-06-07 — R-G2: ws-rs SemVer versioning (feature/rust-impl)
+
+**Done:** `rust/VERSION` 0.2.0; `scripts/bump_rust_version.sh`; `ws_rs::version` + `tests/version.rs`. Independent from wscpp `VERSION` (1.1.0).
+
+**Verify:** `cd rust && cargo test -p ws-rs --test version`.
+
+
+## 2026-06-07 — R-C3: ws-rs RFC 7692 permessage-deflate (feature/rust-impl)
+
+**Done:** `extensions/permessage_deflate` (flate2); handshake negotiation; RSV1 on connection; `Client::enable_permessage_deflate()`; 3 unit + 1 integration test. v0.3.0.
+
+**Verify:** `cd rust && cargo test -p ws-rs --test permessage_deflate --test deflate_echo`.
+
+
+## 2026-06-07 — R-F4 run: LAN benchmark numbers (feature/rust-impl)
+
+**Done:** Remote Rust install in `run_remote_network_compare.sh`; measured ws-rs p50=0.37 ms / 30 MB/s vs tokio-tungstenite 0.39 ms / 29 MB/s on `192.168.1.165`.
+
+**Verify:** `bash rust/benchmarks/run_remote_network_compare.sh`.
+
+
+## 2026-06-07 — R-F2: fastwebsockets + tokio-websockets compare (feature/rust-impl)
+
+**Done:** `bench_fastwebsockets_*`, `bench_tokio_websockets_*` (localhost + LAN); `run_benchmarks.sh` / `run_remote_network_compare.sh` updated.
+
+**Verify:** `cd rust && cargo build --release -p ws-rs-benches --bins && ./target/release/bench_fastwebsockets_roundtrip`.
+
+
+## 2026-06-07 — R-F4 run: full LAN compare 4 libs (feature/rust-impl)
+
+**Done:** `run_remote_network_compare.sh` — ws-rs, tokio-tungstenite, fastwebsockets, tokio-websockets on `192.168.1.165`; ANALYSIS_RUST.md + ANALYSIS.md LAN tables.
+
+**Numbers:** ws-rs p50=0.338 ms / 32.29 MB/s; tokio-tungstenite p50=0.347 ms / 32.95 MB/s; fastwebsockets p50=0.333 ms; tokio-websockets p50=0.372 ms.
+
+
+## 2026-06-07 — R-C4: ws-rs UTF-8 validation §8.1 (feature/rust-impl)
+
+**Done:** Ported `wscpp/detail/utf8.hpp` validator; invalid TEXT → close 1007; 7 unit + 1 integration test. v0.3.1.
+
+**Verify:** `cd rust && cargo test -p ws-rs --test utf8 --test invalid_utf8`.
+
+
+## 2026-06-07 — R-PARITY: ws-rs C++ feature parity (feature/rust-impl)
+
+**Done:**
+
+| Area | C++ reference | ws-rs |
+|------|---------------|-------|
+| Mask XOR unroll | `detail/mask.hpp` | `frame/mask.rs` — ~50 GB/s (was ~7 GB/s) |
+| Outbound buffer reuse | `build_into()` + `outbound_frame_` | `FrameBuilder::build_into*`, `Connection::outbound` |
+| Fragmentation | `read_message`, `send_continuation` | `read_message()`, `send_continuation()` |
+| Close handshake | echo + 1002 on protocol error | `handle_close_frame`, `fail_protocol` → 1002 |
+| Close codes | `sanitize_close_code` | `close.rs` + `tests/close_codes.rs` |
+| Integration tests | `FragmentedTextEcho`, `ServerPingGetsPong` | `fragmented_echo.rs`, `ping_pong.rs` |
+| Minimal transport | `WSCPP_USE_ASIO=OFF` / `linux_socket` | `ws_rs::blocking` (`std::net`, no tokio) |
+| Optional deps | CMake flags | Cargo features: `async`, `tls`, `deflate`, `std-blocking` |
+
+**Verify:**
+
+```bash
+cd rust && cargo test -p ws-rs
+cargo test -p ws-rs --no-default-features --features "std-blocking,deflate"
+cargo build --release -p ws-rs-benches --bin bench_masking && ./target/release/bench_masking
+```
+
+**Remaining gaps vs C++:** callback API (`std::error_code` style stays async-pull in Rust); integration tests should run with `--test-threads=1` (port races in parallel).
+
+
+## 2026-06-07 — R-PARITY-2: blocking wss + stress tests (feature/rust-impl)
+
+**Done:** `blocking-tls` feature — sync `wss://` via rustls `StreamOwned`; `tests/blocking_tls_echo.rs`. Ported C++ stress scenarios (`parallel_clients_echo`, `large_binary_message`, `rapid_small_messages`) behind optional `stress` feature. TLS config split to `tls/config.rs` (shared async + blocking).
+
+**Verify:**
+
+```bash
+cd rust && cargo test -p ws-rs -- --test-threads=1
+cargo test -p ws-rs --features stress --test stress
+```
+
+
+## 2026-06-07 — R-F5: post-parity benchmarks + CI (feature/rust-impl)
+
+**Done:** Re-ran localhost + LAN benches after mask/fragmentation optimizations. Added `bench_blocking_roundtrip` (p50=0.25 ms, 79 MB/s, 687 KB binary). CI Rust job: `cargo test --workspace -- --test-threads=1`. `blocking::Client::recv_binary()`.
+
+**LAN (192.168.1.165):** ws-rs p50=0.367 ms / 30.08 MB/s; fastwebsockets p50=0.348 ms; tokio-tungstenite 26.01 MB/s.
+
+**Verify:** `bash rust/benchmarks/run_benchmarks.sh` && `bash rust/benchmarks/run_remote_network_compare.sh`.
+
+
+## 2026-06-07 — R-F6: blocking LAN + v0.4.0 (feature/rust-impl)
+
+**Done:** `bench_blocking_echo_server` + `bench_blocking_roundtrip_net` in LAN harness. `serial_test` on network integration tests (parallel `cargo test` OK). Bump `rust/VERSION` → **0.4.0**.
+
+**LAN blocking:** p50=0.399 ms / 29.85 MB/s (on par with tokio ws-rs 0.345 ms).
+
+**Verify:** `bash rust/benchmarks/run_remote_network_compare.sh` && `cd rust && cargo test -p ws-rs`.
+
+
+## 2026-06-07 — R-DOC: Rust docs + fmt/clippy CI (feature/rust-impl)
+
+**Done:** [docs/RUST.md](RUST.md) developer guide; updated [rust/README.md](../rust/README.md); `scripts/ci/check-rust.sh`; `rust/rustfmt.toml`; workspace `lints`; CI fmt+clippy+doc; rustdoc on public API (`Client`, `Server`, `Connection`, `frame`, `blocking`).
+
+**Verify:** `./scripts/ci/check-rust.sh`
+
+
+## 2026-06-07 — R-DOC-2: full public rustdoc + missing_docs (feature/rust-impl)
+
+**Done:** Documented all ~160 public items (`Client`/`Connection`/`Server`, `frame`, `handshake`, `blocking/*`, `transport`, TLS helpers, extensions). Fixed crate-level doc in `lib.rs` (Features table inside `//!`). Enabled `#![warn(missing_docs)]` — enforced via CI `RUSTFLAGS="-D warnings"`.
+
+**Verify:** `./scripts/ci/check-rust.sh`
+
+
+## 2026-06-07 — Merge feature/rust-impl → master
+
+**Done:** Rebased ws-rs workspace onto `master` (includes spdlog logging + CI third-party exclusions). Squashed 31 rust commits into one merge commit. `rust/ws-rs` v0.4.0; CI Rust job on `master` only; docs synced (README, CHANGELOG, RUST.md, DEVELOPER.md).
+
+**Verify:** `./scripts/ci/check-rust.sh` && `cd build && ctest --output-on-failure`
+
+**State:** `master`, wscpp 1.1.0 + ws-rs 0.4.0.
+
+**Next:** optional tag `ws-rs-v0.4.0`; batch wscpp release when unreleased C++ items are tagged.

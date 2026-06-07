@@ -14,6 +14,32 @@ env:
   ARTIFACT_RETENTION_DAYS: 5
 
 jobs:
+  rust:
+    name: Rust (ws-rs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Format check
+        run: cd rust && cargo fmt --all --check
+
+      - name: Clippy (warnings as errors)
+        run: cd rust && RUSTFLAGS="-D warnings" cargo clippy --workspace --all-targets
+
+      - name: Test workspace
+        run: cd rust && RUSTFLAGS="-D warnings" cargo test --workspace -- --test-threads=1
+
+      - name: API docs (broken links denied)
+        run: cd rust && RUSTDOCFLAGS="-D rustdoc::broken_intra_doc_links" cargo doc -p ws-rs --no-deps
+
+      - name: Build examples (release)
+        run: cd rust && cargo build --release -p echo_server -p echo_client
+
   format:
     name: Format
     runs-on: ubuntu-latest

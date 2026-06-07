@@ -96,12 +96,6 @@ See [examples/README.md](../examples/README.md) for runnable programs.
 
 When `WSCPP_ENABLE_LOGGING=ON` (default), wscpp writes **error-level** diagnostics to **stderr** via [spdlog](https://github.com/gabime/spdlog). Logs include errors that were previously silent inside the library (ignored I/O results, accept failures, protocol violations) as well as errors delivered through `set_on_error`.
 
-Example line:
-
-```text
-[2026-06-07 20:18:43.670] [wscpp] [error] [connection] read frame header: End of file (2)
-```
-
 Adjust verbosity at runtime:
 
 ```cpp
@@ -110,13 +104,11 @@ Adjust verbosity at runtime:
 wscpp::set_log_level(wscpp::log_level::debug);
 ```
 
-Disable logging entirely at configure time (no spdlog fetch, zero-cost stubs):
+Disable logging entirely at configure time:
 
 ```bash
 cmake -B build -DWSCPP_ENABLE_LOGGING=OFF
 ```
-
-Successful WebSocket traffic does not emit logs on the hot path; roundtrip latency is unchanged within measurement noise.
 
 ## API overview
 
@@ -184,4 +176,6 @@ Build docs: `cmake --build build --target docs`, then open `build/docs/html/inde
 - [TLS / WSS certificates](TLS.md)
 - [Examples](../examples/README.md)
 - [Comparative analysis](../ANALYSIS.md)
+- [Rust guide](RUST.md)
+- [Rust analysis](../ANALYSIS_RUST.md)
 - [Changelog](../CHANGELOG.md)
