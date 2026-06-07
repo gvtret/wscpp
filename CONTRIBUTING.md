@@ -23,9 +23,21 @@
 
 При выполнении атомарных шагов плана:
 
-1. `cmake --build build && ctest`
-2. Append запись в `docs/HANDOFF.md`
+1. `cmake --build build && ctest --timeout 30`
+2. Append запись в `docs/HANDOFF.md` (дата, done, state, next)
 3. Отдельный git commit с сообщением на английском
+
+После изменений протокола (RFC gate) или новых compare-bench — обновите `ANALYSIS.md` и перезапустите `benchmarks/compare/` targets.
+
+## Бенчмарки
+
+```bash
+cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON
+cmake --build build --target benchmarks compare_benchmarks
+ctest --timeout 30
+```
+
+См. `ANALYSIS.md` (методология) и `benchmarks/compare/README.md` (внешние библиотеки).
 
 ## Стандарты кода
 

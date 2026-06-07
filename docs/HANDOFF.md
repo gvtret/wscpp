@@ -23,6 +23,12 @@
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
 **Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
 
+## 2026-06-07 — F3 + G3: final analysis and contributing sync
+
+**Done:** ANALYSIS.md finalized (executive summary, feature matrix, limitations, recommendations); CONTRIBUTING.md updated with benchmark refresh policy. 90/90 tests pass.
+**State:** `main`, VERSION 1.0.2.
+**Next:** Optional Beast/libwebsockets manual benches; RFC 7692 permessage-deflate post-v1.0.
+
 ## 2026-06-07 — F2: comparative benchmarks expansion
 
 **Done:** IXWebSocket 11.4.6 and easywsclient compare targets via FetchContent; `compare_benchmarks` CMake target; ANALYSIS.md updated with 4-library numbers. 90/90 tests pass.

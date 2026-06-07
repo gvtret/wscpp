@@ -1,26 +1,33 @@
 # WebSocket Libraries for C++11 — Comparative Analysis
 
-> Draft catalog and methodology for wscpp. Comparative numbers below are **preliminary** — see [When to benchmark](#when-to-benchmark).
+Comparative catalog and benchmark results for **wscpp** (v1.0.2). Numbers below were measured after the RFC gate (6455 + UTF-8 §8.1 + basic WSS) was green.
+
+## Executive summary
+
+| | wscpp | websocketpp | IXWebSocket | easywsclient |
+|---|-------|-------------|-------------|--------------|
+| **Role** | client + server | client + server | client + server | client only |
+| **C++11, no Boost** | yes | yes (needs ASIO) | yes | yes |
+| **Echo p50 (localhost)** | 0.26 ms | 0.26 ms | 0.24 ms | — |
+| **Echo / connect p99** | 0.34 ms | 0.61 ms | 0.37 ms | 1.78 ms connect |
+| **64 KiB throughput** | 84 MB/s | — | 66 MB/s | — |
+| **Bench binary size** | 379 KB | 708 KB | 485 KB | 370 KB |
+
+On localhost echo, wscpp, websocketpp, and IXWebSocket are in the same latency band. wscpp offers the smallest full client+server footprint among measured stacks without sacrificing RFC 6455 coverage in v1.0.2.
 
 ## Methodology
 
 **Inclusion criterion:** official support for C++11 (or C callable from C++11 without requiring a newer standard).
 
-### When to benchmark
+### RFC gate (benchmark precondition)
 
-**Run comparative benchmarks only after RFC-mandated behaviour is implemented and covered by tests.** Otherwise numbers reflect an incomplete stack, not the final product.
-
-Gate checklist (non-exhaustive):
-
-| RFC | Scope | Status for benchmarking |
-|-----|--------|-------------------------|
+| RFC | Scope | Status |
+|-----|--------|--------|
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) | Framing (§5), handshake (§4), close (§7), ping/pong (§5.5), fragmentation, UTF-8 (§8.1) | **Implemented** |
-| [RFC 2818](https://www.rfc-editor.org/rfc/rfc2818) | `wss://` TLS + server identity (SNI) | **Implemented** — basic WSS path + SNI |
-| [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692) | permessage-deflate | Post-v1.0; exclude from v1.0 baseline |
+| [RFC 2818](https://www.rfc-editor.org/rfc/rfc2818) | `wss://` TLS + SNI | **Implemented** |
+| [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692) | permessage-deflate | Post-v1.0; excluded from baseline |
 
-The harness in `benchmarks/` is kept for regression and iteration, but **ANALYSIS.md results must be refreshed** after the RFC checklist is green. Until then, treat existing tables as smoke-test baselines only.
-
-**Comparison dimensions:**
+### Comparison dimensions
 
 | Dimension | Description |
 |-----------|-------------|
@@ -28,14 +35,21 @@ The harness in `benchmarks/` is kept for regression and iteration, but **ANALYSI
 | TLS | Native or via dependency |
 | Async model | ASIO, threads, callbacks |
 | Dependencies | Boost, OpenSSL, zlib |
-| Footprint | Binary size, compile time (measured in F2) |
+| Footprint | Static binary size of bench target |
 
-**Benchmark scenarios (planned):**
+### Benchmark scenarios
 
-- Frame parse/build throughput (1 MiB)
-- Mask/unmask throughput
-- Localhost connect + echo latency (p50/p99)
-- Throughput (MB/s) for large messages
+| Scenario | Harness target | Notes |
+|----------|------------------|-------|
+| Frame parse/build (1 MiB) | `bench_frame_parse` | wscpp only |
+| Mask/unmask throughput | `bench_masking` | wscpp only |
+| Echo latency p50/p99 (100 samples) | `bench_*_roundtrip` | localhost, text ping |
+| 64 KiB binary throughput | `bench_roundtrip`, `bench_ixwebsocket_roundtrip` | 100 iterations |
+| Connect latency | `bench_easywsclient_connect` | TCP + WS handshake, client-only |
+
+**Environment (2026-06-07):** Linux/WSL2, Release, GCC 15, `127.0.0.1`, no TLS in compare benches.
+
+**Limitations:** localhost only; single machine; no concurrent connections; no TLS in compare suite; Beast / Simple-WebSocket-Server / libwebsockets require manual setup (see `benchmarks/compare/README.md`).
 
 ## Tier 1 — native C++, C++11, client + server
 
@@ -53,7 +67,7 @@ The harness in `benchmarks/` is kept for regression and iteration, but **ANALYSI
 
 | Library | C++11 | Client | Server | TLS | Notes |
 |---------|-------|--------|--------|-----|-------|
-| [easywsclient](https://github.com/dhbaird/easywsclient) | yes | + | — | — | ~600 LOC client |
+| [easywsclient](https://github.com/dhbaird/easywsclient) | yes | + | — | — | ~600 LOC, blocking client |
 | [socket.io-clientpp](https://github.com/ebshimizu/socket.io-clientpp) | yes | + | — | + | Socket.IO, not raw WS |
 
 ## Tier 3 — C libraries usable from C++11
@@ -73,46 +87,56 @@ The harness in `benchmarks/` is kept for regression and iteration, but **ANALYSI
 | Poco Net 1.13+ | C++17 | Release notes |
 | seasocks | C++14 | Toolchain requirement |
 
-## wscpp positioning (qualitative)
+## Feature matrix (qualitative)
+
+| Feature | wscpp | websocketpp | IXWebSocket | Beast | libwebsockets |
+|---------|-------|-------------|-------------|-------|---------------|
+| Client masking (RFC 6455) | yes | yes | yes | yes | yes |
+| Fragment reassembly | yes | yes | yes | yes | yes |
+| Auto pong | yes | yes | yes | yes | yes |
+| UTF-8 text validation | yes | yes | yes | yes | varies |
+| permessage-deflate | no (v1.0) | yes | yes | yes | yes |
+| FetchContent-friendly | yes (ASIO) | yes | yes | no (Boost) | partial |
+| Header-only option | no (static lib) | yes | no | no | no (C lib) |
+
+## wscpp positioning
 
 **Strengths:**
 
-- C++11-only, no Boost
-- Small static library; explicit layering (frame / connection / client|server)
-- Standalone ASIO via FetchContent — reproducible builds
-- RFC 6455 regression vectors in-tree
+- C++11-only, no Boost; reproducible builds via FetchContent ASIO
+- Smallest measured full-stack bench binary (379 KB vs 485–708 KB peers)
+- Explicit layering: frame → connection → client|server
+- RFC 6455 regression vectors and 90 automated tests in-tree
 
 **Trade-offs:**
 
-- No permessage-deflate in v1.0
-- Client certificate verification defaults to permissive (`verify_none`) for developer ergonomics
-- Fewer features than websocketpp/Beast (by design — lightweight scope)
+- No permessage-deflate in v1.0 (RFC 7692 planned post-v1.0)
+- Client cert verification defaults to `verify_none` for developer ergonomics
+- Fewer extensions and examples than websocketpp / Beast / libwebsockets
 
 ## Benchmark results
 
-> **Post-RFC gate (2026-06-07, incl. UTF-8 §8.1).** Localhost echo, Release, GCC 15, 100 samples.
-
-Environment: Linux/WSL2, Release build, GCC 15, local echo (100 samples, 64 KiB throughput test).
+### Comparative echo / connect (automated harness)
 
 | Library | Echo p50 | Echo p99 | 64 KiB throughput | Binary size |
 |---------|----------|----------|-------------------|-------------|
 | **wscpp** | 0.26 ms | 0.34 ms | 84 MB/s | 379 KB |
 | **websocketpp** 0.8.2 | 0.26 ms | 0.61 ms | — | 708 KB |
 | **IXWebSocket** 11.4.6 | 0.24 ms | 0.37 ms | 66 MB/s | 485 KB |
-| **easywsclient** (connect only) | 1.16 ms | 1.78 ms | — | 370 KB |
+| **easywsclient** (connect) | 1.16 ms | 1.78 ms | — | 370 KB |
 
-Client masking and UTF-8 validation add minimal overhead; wscpp, websocketpp, and IXWebSocket are in the same echo-latency band on localhost. easywsclient measures full TCP+handshake connect (blocking API, no echo server in client).
+easywsclient row measures full TCP + WebSocket handshake (blocking API); not comparable to echo latency rows.
 
-**wscpp micro-benchmarks** (1 MiB payload, single-threaded):
+### wscpp micro-benchmarks (1 MiB, single-threaded)
 
 | Scenario | Throughput |
 |----------|------------|
-| Frame build | ~2.1 GB/s |
-| Frame parse | ~23 GB/s (hot cache, same buffer) |
-| Mask/unmask XOR | ~2.1 GB/s |
-| Masked build+parse | ~860 MB/s |
+| Frame build | ~2.3 GB/s |
+| Frame parse | ~27 GB/s (hot cache) |
+| Mask/unmask XOR | ~2.2 GB/s |
+| Masked build+parse | ~877 MB/s |
 
-Run locally:
+### Reproduce
 
 ```bash
 cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON
@@ -121,16 +145,29 @@ cmake --build build --target benchmarks compare_benchmarks
 ./build/bin/bench_websocketpp_roundtrip
 ./build/bin/bench_ixwebsocket_roundtrip
 ./build/bin/bench_easywsclient_connect
+./build/bin/bench_frame_parse
+./build/bin/bench_masking
 ```
 
-Libraries requiring manual install (Beast, Simple-WebSocket-Server, libwebsockets) — see `benchmarks/compare/README.md`.
+Manual compare targets (Beast, Simple-WebSocket-Server, libwebsockets): `benchmarks/compare/README.md`.
 
 ## Recommendations
 
 | Use case | Suggestion |
 |----------|------------|
-| Embedded / minimal deps | wscpp (~379 KB echo binary), easywsclient (client-only) |
-| Maximum features + ecosystem | websocketpp, Boost.Beast |
-| Lowest localhost echo latency (this setup) | wscpp, websocketpp, IXWebSocket (comparable) |
-| Mobile / cross-platform SDK | IXWebSocket |
-| C codebase | libwebsockets |
+| Embedded / minimal deps, C++11 | **wscpp** (379 KB echo binary, no Boost) |
+| Client-only, smallest code | **easywsclient** (~600 LOC; blocking) |
+| Maximum features + extensions | **websocketpp**, **Boost.Beast** |
+| Lowest localhost echo (this setup) | wscpp, websocketpp, IXWebSocket (within ~0.1 ms p50) |
+| Mobile / cross-platform SDK | **IXWebSocket** |
+| C codebase / mature ops stack | **libwebsockets** |
+| Need permessage-deflate now | IXWebSocket, Beast, libwebsockets (not wscpp v1.0) |
+
+## Changelog
+
+| Date | Change |
+|------|--------|
+| 2026-06-07 | Initial catalog (F0) |
+| 2026-06-07 | Post-RFC gate numbers; wscpp + websocketpp |
+| 2026-06-07 | UTF-8 §8.1; v1.0.2 baseline |
+| 2026-06-07 | F2 expansion: IXWebSocket, easywsclient; F3 final analysis |
