@@ -1,5 +1,9 @@
 # wscpp — Developer Guide
 
+## Project status
+
+wscpp is **experimental** and was **implemented entirely with AI assistance** (LLM agents). Treat design decisions and diffs as proposals until reviewed. See [AGENTS.md](../AGENTS.md) for agent workflow guidelines used in this repository.
+
 ## Architecture
 
 ```mermaid

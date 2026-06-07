@@ -2,6 +2,8 @@
 
 Lightweight WebSocket stack for **`C++11`** with optional TLS (`wss://`).
 
+> **Experimental / AI-built.** wscpp is an experimental library, not a production-grade product. The entire codebase was created with AI coding agents (LLMs); humans curate tests, CI, and releases, but you should expect gaps, API churn, and undiscovered bugs. Do not use in production without independent review.
+
 [![CI](https://github.com/gvtret/wscpp/actions/workflows/ci.yml/badge.svg)](https://github.com/gvtret/wscpp/actions/workflows/ci.yml)
 
 ## Features
@@ -33,6 +35,7 @@ cd build && ctest --output-on-failure
 | [Examples](examples/README.md) | ws:// and wss:// echo programs |
 | [Analysis](ANALYSIS.md) | **`C++11`** WebSocket library comparison |
 | [Changelog](CHANGELOG.md) | Release history |
+| [AGENTS.md](AGENTS.md) | Guidelines for AI coding agents working on this repo |
 | API reference | `cmake --build build --target docs` → `build/docs/html/index.html` |
 
 ## Examples

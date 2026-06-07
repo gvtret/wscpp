@@ -13,13 +13,22 @@
 # Build directories
 build/
 build-*/
-dist/
 cmake-build-*/
 *.cmake
 CMakeCache.txt
 CMakeFiles/
 Makefile
 cmake_install.cmake
+
+# Artifacts (local packaging, CI downloads, release outputs)
+dist/
+dist/staging/
+release/
+artifacts/
+doxygen-html/
+package/
+packages/
+out/
 
 # IDE
 .idea/
@@ -55,7 +64,6 @@ tests/tls/fixtures/*
 # Version file (optional - uncomment if you want to ignore)
 # VERSION
 
-# Release artifacts
+# Archive outputs (release tarballs, doc bundles)
 *.tar.gz
 *.zip
-release/

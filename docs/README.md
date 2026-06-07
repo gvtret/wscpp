@@ -2,6 +2,10 @@
 
 Lightweight WebSocket client/server library for **`C++11`** with optional TLS (`wss://`).
 
+## Project status
+
+**Experimental library, AI-implemented.** wscpp was built end-to-end with AI coding agents (LLMs). It ships tests, benchmarks, and RFC-oriented regression vectors, but there is no claim of production readiness. APIs may change; behavior should be validated for your use case. Issues and human review are welcome.
+
 ## Requirements
 
 - **`C++11`** compiler (GCC 4.8+, Clang 3.3+, MSVC 2015+)

@@ -129,6 +129,8 @@ Tier 2/3 capability dashes use tags [c]–[e] from [Table legend](#table-legend)
 
 ## wscpp positioning
 
+**Disclaimer:** wscpp is an **experimental**, **AI-implemented** library (see [README.md](README.md)). Benchmark and feature tables describe current code, not a maturity guarantee.
+
 **Strengths:**
 
 - **`C++11`**-only, no Boost; reproducible builds via FetchContent ASIO or linux-only OpenSSL path
