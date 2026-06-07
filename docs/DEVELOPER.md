@@ -82,6 +82,21 @@ ctest -R FrameTest --output-on-failure       # filter by name
 ctest -R wscpp_test_unit                     # unit suite
 ```
 
+### CI pipeline (GitHub Actions / GitVerse)
+
+Jobs run in order: **format** → **lint** (clang-tidy) → **test** (ASIO + linux transport, GCC + Clang) → **release-build** → **release** (tags `v*` only).
+
+Local checks:
+
+```bash
+./scripts/ci/check-format.sh
+cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build build
+./scripts/ci/clang-tidy.sh build
+```
+
+Workflow artifacts (Doxygen HTML, release tarball) are kept for **5 days**.
+Tag releases are published with `gh release create` (library tarball + API docs archive).
+
 Stress tests (local only, not CI by default):
 
 ```bash

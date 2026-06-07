@@ -3,49 +3,214 @@ name: CI
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - cxx: g++
-            cc: gcc
-          - cxx: clang++
-            cc: clang
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+env:
+  ARTIFACT_RETENTION_DAYS: 5
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: ./scripts/ci/check-format.sh
+
+  lint:
+    name: Lint
+    needs: format
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libssl-dev zlib1g-dev libboost-system-dev doxygen ${{ matrix.cc }}
+          sudo apt-get install -y \
+            build-essential cmake clang clang-tidy libssl-dev zlib1g-dev
+
+      - name: Configure (compile_commands.json)
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DWSCPP_BUILD_TESTS=OFF \
+            -DWSCPP_BUILD_EXAMPLES=OFF \
+            -DWSCPP_BUILD_DOCS=OFF \
+            -DWSCPP_BUILD_BENCHMARKS=OFF
+
+      - name: Build library
+        run: cmake --build build -j$(nproc)
+
+      - name: clang-tidy
+        run: ./scripts/ci/clang-tidy.sh build
+
+  test:
+    name: Test (${{ matrix.transport }}, ${{ matrix.cc }})
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - transport: asio
+            use_asio: ON
+            cxx: g++
+            cc: gcc
+          - transport: asio
+            use_asio: ON
+            cxx: clang++
+            cc: clang
+          - transport: linux
+            use_asio: OFF
+            cxx: g++
+            cc: gcc
+          - transport: linux
+            use_asio: OFF
+            cxx: clang++
+            cc: clang
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libssl-dev zlib1g-dev doxygen ${{ matrix.cc }}
 
       - name: Configure
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DWSCPP_USE_ASIO=${{ matrix.use_asio }} \
             -DWSCPP_BUILD_TESTS=ON \
             -DWSCPP_BUILD_EXAMPLES=ON \
             -DWSCPP_BUILD_DOCS=ON \
-            -DWSCPP_ENABLE_STRESS_TESTS=OFF
+            -DWSCPP_ENABLE_STRESS_TESTS=OFF \
+            -DWSCPP_BUILD_BENCHMARKS=OFF
 
       - name: Build
         run: cmake --build build -j$(nproc)
 
+      - name: Generate TLS test fixtures
+        run: bash scripts/gen-test-tls-certs.sh
+
       - name: Test
-        run: cd build && ctest --output-on-failure
+        run: cd build && ctest --output-on-failure --timeout 30
 
       - name: Build API documentation
         run: cmake --build build --target docs
 
-      - name: Upload Doxygen artifact
+      - name: Upload Doxygen HTML
         uses: actions/upload-artifact@v4
         with:
-          name: doxygen-html-${{ matrix.cc }}
+          name: doxygen-${{ matrix.transport }}-${{ matrix.cc }}
           path: build/docs/html
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  release-build:
+    name: Release build
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake g++ libssl-dev zlib1g-dev doxygen
+
+      - name: Configure Release
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWSCPP_BUILD_TESTS=OFF \
+            -DWSCPP_BUILD_EXAMPLES=ON \
+            -DWSCPP_BUILD_DOCS=ON \
+            -DWSCPP_BUILD_BENCHMARKS=OFF
+
+      - name: Build and install
+        run: |
+          cmake --build build -j$(nproc)
+          cmake --build build --target docs
+
+      - name: Package install tree
+        run: ./scripts/ci/package-release.sh build
+
+      - name: Upload release tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: wscpp-release-tarball
+          path: dist/*.tar.gz
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+      - name: Upload Doxygen (release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-release
+          path: build/docs/html
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  release:
+    name: GitHub Release
+    needs: release-build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download release tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: wscpp-release-tarball
+          path: dist
+
+      - name: Download API docs
+        uses: actions/download-artifact@v4
+        with:
+          name: doxygen-release
+          path: doxygen-html
+
+      - name: Package API docs
+        run: tar -C doxygen-html -czf "dist/wscpp-${GITHUB_REF_NAME}-docs.tar.gz" .
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          notes="$(mktemp)"
+          if awk -v ver="[${version}]" '
+            $0 ~ "^## \\[?" ver "\\]?" { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md | grep -q .; then
+            awk -v ver="[${version}]" '
+              $0 ~ "^## \\[?" ver "\\]?" { found=1; next }
+              found && /^## / { exit }
+              found { print }
+            ' CHANGELOG.md > "$notes"
+          else
+            echo "Release ${tag}" > "$notes"
+          fi
+          assets=(dist/*.tar.gz)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "${assets[@]}" --clobber
+          else
+            gh release create "$tag" "${assets[@]}" \
+              --title "wscpp ${tag}" \
+              --notes-file "$notes"
+          fi
