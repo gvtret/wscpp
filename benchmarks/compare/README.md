@@ -16,6 +16,20 @@ Side-by-side scenarios for **`C++11`** WebSocket libraries. Built when `WSCPP_BU
 | `bench_beast_roundtrip` | Boost.Beast | Boost 1.70+ | echo latency, 64 KiB throughput |
 | `bench_sws_roundtrip` | Simple-WebSocket-Server | GitLab `0e1cf67` | echo latency |
 
+### LAN compare (client local, echo server remote)
+
+| Server target | Client target | Library |
+|---------------|---------------|---------|
+| `bench_echo_server` | `bench_roundtrip_net` | wscpp |
+| `bench_wscpp_connect_server` | `bench_easywsclient_connect_net` | easywsclient connect |
+| `bench_websocketpp_echo_server` | `bench_websocketpp_roundtrip_net` | websocketpp |
+| `bench_ixwebsocket_echo_server` | `bench_ixwebsocket_roundtrip_net` | IXWebSocket |
+| `bench_libwebsockets_echo_server` | `bench_libwebsockets_roundtrip_net` | libwebsockets |
+| `bench_beast_echo_server` | `bench_beast_roundtrip_net` | Boost.Beast |
+| `bench_sws_echo_server` | `bench_sws_roundtrip_net` | Simple-WebSocket-Server |
+
+Run all: `bash benchmarks/run_remote_network_compare.sh` (see parent `benchmarks/README.md`).
+
 Build and run all:
 
 ```bash

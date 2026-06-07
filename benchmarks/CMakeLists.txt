@@ -23,8 +23,12 @@ endfunction()
 wscpp_add_bench(bench_frame_parse bench_frame_parse.cpp)
 wscpp_add_bench(bench_masking bench_masking.cpp)
 wscpp_add_bench(bench_roundtrip bench_roundtrip.cpp)
+wscpp_add_bench(bench_echo_server bench_echo_server.cpp)
+wscpp_add_bench(bench_wscpp_connect_server bench_wscpp_connect_server.cpp)
+wscpp_add_bench(bench_roundtrip_net bench_roundtrip_net.cpp)
 
-set(WSCPP_BENCH_TARGETS bench_frame_parse bench_masking bench_roundtrip)
+set(WSCPP_BENCH_TARGETS bench_frame_parse bench_masking bench_roundtrip bench_echo_server
+    bench_wscpp_connect_server bench_roundtrip_net)
 
 add_custom_target(benchmarks
     DEPENDS ${WSCPP_BENCH_TARGETS}
