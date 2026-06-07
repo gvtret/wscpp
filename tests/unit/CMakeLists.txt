@@ -1,11 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(wscpp_tests_unit LANGUAGES CXX)
 
-# Create test executable
-add_executable(wscpp_test_unit
+set(WSCPP_UNIT_TEST_SOURCES
     test_version.cpp
-    test_asio.cpp
-    test_openssl.cpp
     test_frame.cpp
     test_handshake.cpp
     test_connection.cpp
@@ -15,11 +12,23 @@ add_executable(wscpp_test_unit
     test_permessage_deflate.cpp
 )
 
-target_link_libraries(wscpp_test_unit
+if(WSCPP_USE_ASIO)
+    list(APPEND WSCPP_UNIT_TEST_SOURCES test_asio.cpp test_openssl.cpp)
+else()
+    list(APPEND WSCPP_UNIT_TEST_SOURCES test_linux_socket.cpp)
+endif()
+
+add_executable(wscpp_test_unit ${WSCPP_UNIT_TEST_SOURCES})
+
+target_link_libraries(wscpp_test_unit PRIVATE
     wscpp
     GTest::gtest_main
 )
 
-# Add test
+if(TARGET asio::asio)
+    target_link_libraries(wscpp_test_unit PRIVATE asio::asio)
+    target_compile_definitions(wscpp_test_unit PRIVATE ASIO_STANDALONE)
+endif()
+
 include(GoogleTest)
 gtest_discover_tests(wscpp_test_unit)

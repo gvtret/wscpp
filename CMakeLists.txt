@@ -50,59 +50,66 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Installation directories
 include(GNUInstallDirs)
 
+option(WSCPP_USE_ASIO "Use standalone ASIO for transport (OFF = Linux POSIX sockets)" ON)
 option(WSCPP_ENABLE_DEFLATE "Enable RFC 7692 permessage-deflate (requires zlib)" ON)
+option(WSCPP_BUILD_TESTS "Build tests" ON)
+option(WSCPP_ENABLE_STRESS_TESTS "Build stress integration tests" OFF)
+option(WSCPP_BUILD_EXAMPLES "Build examples" ON)
+option(WSCPP_BUILD_BENCHMARKS "Build benchmarks" OFF)
+option(WSCPP_BUILD_DOCS "Build API documentation with Doxygen" ON)
+
 if(WSCPP_ENABLE_DEFLATE)
     find_package(ZLIB REQUIRED)
 endif()
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
+if(NOT WSCPP_USE_ASIO AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "WSCPP_USE_ASIO=OFF requires Linux (POSIX socket backend)")
+endif()
+
 # Include CMake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# Fetch ASIO
 include(FetchContent)
-FetchContent_Declare(
-    asio
-    GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
-    GIT_TAG asio-1-20-0
-)
-FetchContent_MakeAvailable(asio)
 
-# Create imported target if not exists
-if(NOT TARGET asio::asio)
-    FetchContent_GetProperties(asio)
-    add_library(asio::asio INTERFACE IMPORTED)
-    set_target_properties(asio::asio PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${asio_SOURCE_DIR}/asio/include"
+set(WSCPP_NEED_ASIO_FETCH ${WSCPP_USE_ASIO})
+if(WSCPP_BUILD_TESTS OR WSCPP_BUILD_BENCHMARKS)
+    set(WSCPP_NEED_ASIO_FETCH ON)
+endif()
+if(WSCPP_NEED_ASIO_FETCH)
+    FetchContent_Declare(
+        asio
+        GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+        GIT_TAG asio-1-20-0
     )
+    FetchContent_MakeAvailable(asio)
+
+    if(NOT TARGET asio::asio)
+        FetchContent_GetProperties(asio)
+        add_library(asio::asio INTERFACE IMPORTED)
+        set_target_properties(asio::asio PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${asio_SOURCE_DIR}/asio/include"
+        )
+    endif()
 endif()
 
 # Add subdirectories
 add_subdirectory(src)
 
-# Add tests if enabled
-option(WSCPP_BUILD_TESTS "Build tests" ON)
-option(WSCPP_ENABLE_STRESS_TESTS "Build stress integration tests" OFF)
 if(WSCPP_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
-# Add examples if enabled
-option(WSCPP_BUILD_EXAMPLES "Build examples" ON)
 if(WSCPP_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-# Benchmarks (scaffold)
-option(WSCPP_BUILD_BENCHMARKS "Build benchmarks" OFF)
 if(WSCPP_BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif()
 
-# API documentation (Doxygen)
-option(WSCPP_BUILD_DOCS "Build API documentation with Doxygen" ON)
 if(WSCPP_BUILD_DOCS)
     find_package(Doxygen QUIET)
     if(DOXYGEN_FOUND)
@@ -195,8 +202,13 @@ message(STATUS "")
 message(STATUS "wscpp v${WSCPP_VERSION_STRING}")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  Transport: ${WSCPP_USE_ASIO}")
 message(STATUS "  OpenSSL: ${OPENSSL_VERSION}")
-message(STATUS "  ASIO: ${asio_SOURCE_DIR}/asio/include")
+if(WSCPP_USE_ASIO AND DEFINED asio_SOURCE_DIR)
+    message(STATUS "  ASIO: ${asio_SOURCE_DIR}/asio/include")
+elseif(NOT WSCPP_USE_ASIO)
+    message(STATUS "  ASIO: (disabled — Linux POSIX sockets)")
+endif()
 message(STATUS "")
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "")

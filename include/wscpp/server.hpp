@@ -6,12 +6,11 @@
  * @brief WebSocket server API with optional TLS.
  */
 
-#include <asio.hpp>
-#include <asio/ssl/context.hpp>
-#include <asio/ssl/stream.hpp>
+#include <wscpp/net/transport.hpp>
 #include <memory>
 #include <functional>
 #include <string>
+#include <system_error>
 #include <vector>
 #include <map>
 #include "connection.hpp"
@@ -25,8 +24,7 @@ namespace wscpp {
  */
 class server {
 public:
-    using tcp = asio::ip::tcp;
-    using ssl_context = asio::ssl::context;
+    using ssl_context = net::ssl_context;
     using connection_type = connection;
 
     using connection_callback = std::function<void(std::shared_ptr<connection_type>)>;
@@ -43,14 +41,14 @@ public:
     server& operator=(const server&) = delete;
 
     /** @brief Listen on all interfaces at @p port. */
-    void listen(uint16_t port);
+    std::error_code listen(uint16_t port);
 
     /** @brief Listen on @p host at @p port. */
-    void listen(const std::string& host, uint16_t port);
+    std::error_code listen(const std::string& host, uint16_t port);
 
     /**
      * @brief Enable WSS by providing TLS context with certificate/key loaded.
-     * @param ctx Shared ASIO SSL context (server mode).
+     * @param ctx Shared TLS context (server mode).
      */
     void set_ssl_context(std::shared_ptr<ssl_context> ctx);
 
@@ -70,7 +68,7 @@ public:
     void set_on_error(error_callback cb);
 
     /** @brief Start accept loop on background thread. */
-    void start();
+    std::error_code start();
 
     /** @brief Stop server and close all connections. */
     void stop();

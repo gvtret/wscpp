@@ -1,5 +1,4 @@
 // Server example for wscpp
-// This example demonstrates a simple WebSocket server using wscpp
 
 #include <wscpp/server.hpp>
 #include <iostream>
@@ -11,48 +10,50 @@ using namespace wscpp;
 
 int main(int argc, char* argv[]) {
     uint16_t port = 8080;
-    
+
     if (argc > 1) {
         port = static_cast<uint16_t>(std::atoi(argv[1]));
     }
-    
-    try {
-        server srv;
-        
-        // Set callbacks
-        srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-            std::cout << "New connection from "
-                      << conn->socket().native_socket().remote_endpoint() << std::endl;
-            
-            // Set per-connection callbacks
-            conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
-                std::string message(data.begin(), data.end());
-                std::cout << "Received: " << message << std::endl;
-                
-                // Echo the message back
-                conn->send_text("Echo: " + message);
-            });
-            
-            conn->set_on_close([conn](uint16_t code, const std::string& reason) {
-                std::cout << "Connection closed: " << code << " - " << reason << std::endl;
-            });
+
+    server srv;
+
+    srv.set_on_connection([&](std::shared_ptr<connection> conn) {
+#if WSCPP_USE_ASIO
+        std::cout << "New connection from "
+                  << conn->socket().native_socket().remote_endpoint() << std::endl;
+#else
+        std::cout << "New connection accepted" << std::endl;
+#endif
+
+        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+            (void)op;
+            const std::string message(data.begin(), data.end());
+            std::cout << "Received: " << message << std::endl;
+            conn->send_text("Echo: " + message);
         });
-        
-        srv.set_on_error([](std::shared_ptr<connection> conn, const std::string& error) {
-            std::cerr << "Connection error: " << error << std::endl;
+
+        conn->set_on_close([](uint16_t code, const std::string& reason) {
+            std::cout << "Connection closed: " << code << " - " << reason << std::endl;
         });
-        
-        // Listen on port
-        srv.listen(port);
-        std::cout << "Server listening on port " << port << std::endl;
-        
-        // Start server (blocking)
-        srv.start();
-        srv.join();
-    } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+    });
+
+    srv.set_on_error([](std::shared_ptr<connection> conn, const std::string& error) {
+        (void)conn;
+        std::cerr << "Connection error: " << error << std::endl;
+    });
+
+    const std::error_code listen_ec = srv.listen(port);
+    if (listen_ec) {
+        std::cerr << "Listen failed: " << listen_ec.message() << std::endl;
         return 1;
     }
-    
+    std::cout << "Server listening on port " << port << std::endl;
+
+    const std::error_code start_ec = srv.start();
+    if (start_ec) {
+        std::cerr << "Start failed: " << start_ec.message() << std::endl;
+        return 1;
+    }
+    srv.join();
     return 0;
 }

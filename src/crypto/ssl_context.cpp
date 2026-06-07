@@ -3,7 +3,7 @@
 #include <asio/ssl/error.hpp>
 #include <asio/ssl/verify_mode.hpp>
 #include <asio/error_code.hpp>
-#include <stdexcept>
+#include <asio/error_code.hpp>
 
 namespace wscpp {
 namespace crypto {

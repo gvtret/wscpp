@@ -10,11 +10,11 @@
  * @brief WebSocket client API (ws:// and wss://).
  */
 
-#include <asio.hpp>
-#include <asio/ssl/context.hpp>
+#include <wscpp/net/transport.hpp>
 #include <memory>
 #include <functional>
 #include <string>
+#include <system_error>
 #include <vector>
 #include "connection.hpp"
 #include "frame/parser.hpp"
@@ -27,8 +27,7 @@ namespace wscpp {
  */
 class client {
 public:
-    using tcp = asio::ip::tcp;
-    using ssl_context = asio::ssl::context;
+    using ssl_context = net::ssl_context;
     using connection_type = connection;
 
     using message_callback = std::function<void(const std::vector<uint8_t>&, frame::opcode)>;
@@ -48,7 +47,7 @@ public:
      * @brief Connect to WebSocket URL (ws:// or wss://).
      * @param url Full WebSocket URL including path.
      */
-    void connect(const std::string& url);
+    std::error_code connect(const std::string& url);
 
     /**
      * @brief Send close frame and shut down connection.
@@ -58,13 +57,13 @@ public:
     void close(uint16_t status_code = 1000, const std::string& reason = "");
 
     /** @brief Send a text WebSocket frame. */
-    void send_text(const std::string& text, bool fin = true);
+    std::error_code send_text(const std::string& text, bool fin = true);
 
     /** @brief Send a binary WebSocket frame. */
-    void send_binary(const uint8_t* data, size_t size, bool fin = true);
+    std::error_code send_binary(const uint8_t* data, size_t size, bool fin = true);
 
     /** @brief Send continuation fragment (multi-frame message). */
-    void send_continuation(const std::string& data, bool fin = true);
+    std::error_code send_continuation(const std::string& data, bool fin = true);
 
     /** @brief Register callback invoked after WebSocket handshake completes. */
     void set_on_open(open_callback cb);
@@ -89,6 +88,12 @@ public:
 
     /** @brief Stop io_context event loop. */
     void stop();
+
+    /**
+     * @brief Override default TLS context (call before connect for wss://).
+     * Use for custom CA trust, client certificates, or verify modes.
+     */
+    void set_ssl_context(std::shared_ptr<ssl_context> ctx);
 
 #if WSCPP_ENABLE_DEFLATE
     /** @brief Request RFC 7692 permessage-deflate on connect (default off). */

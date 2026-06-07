@@ -3,26 +3,25 @@
 
 #include <gtest/gtest.h>
 #include <wscpp/connection.hpp>
-#include <asio/io_context.hpp>
-#include <asio/ip/tcp.hpp>
-#include <asio/ssl/context.hpp>
+#include <wscpp/net/transport.hpp>
 #include <thread>
 #include <chrono>
 #include <string>
 #include <vector>
 
 using namespace wscpp;
+using wscpp::net::io_context;
 
 // Test connection creation
 TEST(ConnectionTest, CreateConnection) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     EXPECT_FALSE(conn.is_open());
 }
 
 // Test connection state after creation
 TEST(ConnectionTest, ConnectionInitialState) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     EXPECT_FALSE(conn.is_open());
@@ -31,7 +30,7 @@ TEST(ConnectionTest, ConnectionInitialState) {
 
 // Test connection close
 TEST(ConnectionTest, CloseConnection) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     // Close without connecting (should be safe)
@@ -42,7 +41,7 @@ TEST(ConnectionTest, CloseConnection) {
 
 // Test connection callbacks
 TEST(ConnectionTest, SetCallbacks) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     bool open_called = false;
@@ -73,7 +72,7 @@ TEST(ConnectionTest, SetCallbacks) {
 
 // Test connection send
 TEST(ConnectionTest, SendText) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     // Note: This will fail without a real connection, but we can test the method exists
@@ -83,7 +82,7 @@ TEST(ConnectionTest, SendText) {
 
 // Test connection send binary
 TEST(ConnectionTest, SendBinary) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     uint8_t data[] = {0x01, 0x02, 0x03, 0x04, 0x05};
@@ -94,7 +93,7 @@ TEST(ConnectionTest, SendBinary) {
 
 // Test connection socket access
 TEST(ConnectionTest, SocketAccess) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     auto& socket = conn.socket();
@@ -105,7 +104,7 @@ TEST(ConnectionTest, SocketAccess) {
 
 // Test connection SSL state
 TEST(ConnectionTest, SSLState) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
     
     // Default connection is not SSL
@@ -114,7 +113,7 @@ TEST(ConnectionTest, SSLState) {
 
 // Test multiple connections
 TEST(ConnectionTest, MultipleConnections) {
-    asio::io_context io_context;
+    io_context io_context;
     
     connection conn1(io_context);
     connection conn2(io_context);
@@ -125,24 +124,28 @@ TEST(ConnectionTest, MultipleConnections) {
 
 // Test connection with different io_contexts
 TEST(ConnectionTest, DifferentIOContexts) {
-    asio::io_context io_context1;
-    asio::io_context io_context2;
-    
+    io_context io_context1;
+    io_context io_context2;
+
     connection conn1(io_context1);
     connection conn2(io_context2);
-    
+
     EXPECT_FALSE(conn1.is_open());
     EXPECT_FALSE(conn2.is_open());
 }
 
 // Test connection with SSL context
 TEST(ConnectionTest, SSLContext) {
-    asio::io_context io_context;
+    io_context io_context;
     connection conn(io_context);
-    
+
+#if WSCPP_USE_ASIO
     asio::ssl::context ssl_context(asio::ssl::context::tlsv12_client);
-    
-    // Note: We can't directly set SSL context on connection yet
-    // This would require additional API
+    (void)ssl_context;
+#else
+    std::shared_ptr<net::openssl_context> ssl_context;
+    ASSERT_FALSE(net::openssl_context::make(net::openssl_context::role::client, ssl_context));
+#endif
+
     EXPECT_FALSE(conn.is_ssl());
 }

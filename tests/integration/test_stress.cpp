@@ -39,8 +39,8 @@ void start_echo_server(server& srv, uint16_t port) {
             }
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 }
 
 } // namespace
@@ -66,9 +66,9 @@ TEST(StressIntegration, ParallelClientsEcho) {
                     done = true;
                 }
             });
-            try {
+            const std::error_code ec =
                 cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-            } catch (...) {
+            if (ec) {
                 done = true;
             }
             if (wait_for(done, 10000)) {
@@ -106,9 +106,9 @@ TEST(StressIntegration, LargeBinaryMessage) {
                 done = true;
             }
         });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-        } catch (...) {
+        if (ec) {
             done = true;
         }
         wait_for(done, 30000);
@@ -140,9 +140,9 @@ TEST(StressIntegration, RapidSmallMessages) {
                 done = true;
             }
         });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-        } catch (...) {
+        if (ec) {
             done = true;
         }
         wait_for(done, 15000);

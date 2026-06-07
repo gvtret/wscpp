@@ -41,8 +41,8 @@ TEST(ClientServerIntegration, EchoTextMessage) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 
     std::thread client_thread([&]() {
         client cli;
@@ -52,10 +52,10 @@ TEST(ClientServerIntegration, EchoTextMessage) {
             cli.close();
             client_done = true;
         });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-        } catch (const std::exception& ex) {
-            ADD_FAILURE() << ex.what();
+        if (ec) {
+            ADD_FAILURE() << ec.message();
             client_done = true;
             return;
         }

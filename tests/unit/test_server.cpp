@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <wscpp/server.hpp>
+#include <wscpp/error.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 
@@ -12,7 +13,7 @@ TEST(ServerTest, InitialState) {
 
 TEST(ServerTest, StopWithoutListenIsSafe) {
     server srv;
-    EXPECT_NO_THROW(srv.stop());
+    srv.stop();
     EXPECT_FALSE(srv.is_running());
 }
 
@@ -23,7 +24,7 @@ TEST(ServerTest, ListenBindsPort) {
     probe.close();
 
     server srv;
-    EXPECT_NO_THROW(srv.listen(port));
+    EXPECT_FALSE(srv.listen(port));
     EXPECT_TRUE(srv.is_running());
     srv.stop();
     EXPECT_FALSE(srv.is_running());
@@ -31,5 +32,5 @@ TEST(ServerTest, ListenBindsPort) {
 
 TEST(ServerTest, StartRequiresListen) {
     server srv;
-    EXPECT_THROW(srv.start(), std::runtime_error);
+    EXPECT_EQ(srv.start(), make_error_code(errc::server_not_listening));
 }

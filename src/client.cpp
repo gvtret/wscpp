@@ -1,25 +1,14 @@
 #include <wscpp/client.hpp>
+#include <wscpp/error.hpp>
 #include <wscpp/handshake.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #if WSCPP_ENABLE_DEFLATE
 #include <wscpp/extensions/permessage_deflate.hpp>
 #endif
-#include <asio/streambuf.hpp>
 #include <map>
 #include <sstream>
-#include <stdexcept>
-#include <thread>
 
 namespace wscpp {
-
-namespace {
-
-std::string streambuf_to_string(const asio::streambuf& buf) {
-    const asio::streambuf::const_buffers_type bufs = buf.data();
-    return std::string(asio::buffers_begin(bufs), asio::buffers_end(bufs));
-}
-
-} // namespace
 
 class client::impl {
 public:
@@ -34,29 +23,51 @@ public:
 #endif
     {
         connection_.set_role(connection_role::client);
-        ssl_context_ = std::make_shared<asio::ssl::context>(asio::ssl::context::tlsv12_client);
-        ssl_context_->set_verify_mode(asio::ssl::verify_none);
     }
 
     ~impl() {
         stop();
     }
 
-    void connect(const std::string& url) {
+    std::error_code connect(const std::string& url) {
         const url_info info = parse_url(url);
+        std::error_code ec;
 
         if (info.secure) {
-            connection_.socket().enable_ssl(ssl_context_);
-            connection_.socket().set_ssl_hostname(info.host);
-            connection_.socket().connect(info.host, info.port);
-            connection_.socket().ssl_handshake(true);
+            ec = ensure_ssl_context();
+            if (ec) {
+                return ec;
+            }
+            ec = connection_.socket().connect(info.host, info.port);
+            if (ec) {
+                return ec;
+            }
+            ec = connection_.socket().enable_ssl(ssl_context_);
+            if (ec) {
+                return ec;
+            }
+            ec = connection_.socket().set_ssl_hostname(info.host);
+            if (ec) {
+                return ec;
+            }
+            ec = connection_.socket().ssl_handshake(true);
+            if (ec) {
+                return ec;
+            }
         } else {
-            connection_.socket().connect(info.host, info.port);
+            ec = connection_.socket().connect(info.host, info.port);
+            if (ec) {
+                return ec;
+            }
         }
 
-        perform_handshake(info);
+        ec = perform_handshake(info);
+        if (ec) {
+            return ec;
+        }
         connection_.activate();
         is_open_ = true;
+        return std::error_code();
     }
 
     void close(uint16_t status_code, const std::string& reason) {
@@ -68,16 +79,16 @@ public:
         is_open_ = false;
     }
 
-    void send_text(const std::string& text, bool fin) {
-        connection_.send_text(text, fin);
+    std::error_code send_text(const std::string& text, bool fin) {
+        return connection_.send_text(text, fin);
     }
 
-    void send_binary(const uint8_t* data, size_t size, bool fin) {
-        connection_.send_binary(data, size, fin);
+    std::error_code send_binary(const uint8_t* data, size_t size, bool fin) {
+        return connection_.send_binary(data, size, fin);
     }
 
-    void send_continuation(const std::string& data, bool fin) {
-        connection_.send_continuation(
+    std::error_code send_continuation(const std::string& data, bool fin) {
+        return connection_.send_continuation(
             reinterpret_cast<const uint8_t*>(data.data()), data.size(), fin);
     }
 
@@ -97,11 +108,28 @@ public:
         io_context_.stop();
     }
 
+    void set_ssl_context(std::shared_ptr<net::ssl_context> ctx) {
+        ssl_context_ = ctx;
+    }
+
 #if WSCPP_ENABLE_DEFLATE
     void enable_permessage_deflate(bool enable) { request_deflate_ = enable; }
 #endif
 
 private:
+    std::error_code ensure_ssl_context() {
+        if (ssl_context_) {
+            return std::error_code();
+        }
+#if WSCPP_USE_ASIO
+        ssl_context_ = std::make_shared<net::ssl_context>(asio::ssl::context::tlsv12_client);
+        ssl_context_->set_verify_mode(asio::ssl::verify_none);
+        return std::error_code();
+#else
+        return net::ssl_context::make(net::ssl_context::role::client, ssl_context_);
+#endif
+    }
+
     url_info parse_url(const std::string& url) {
         url_info info;
         info.path = "/";
@@ -133,7 +161,7 @@ private:
         return info;
     }
 
-    void perform_handshake(const url_info& info) {
+    std::error_code perform_handshake(const url_info& info) {
         const std::string key = handshake::generate_key();
 #if WSCPP_ENABLE_DEFLATE
         const std::string extensions =
@@ -145,17 +173,24 @@ private:
             handshake::build_client_request(info.host, info.port, info.path, key);
 #endif
 
-        connection_.socket().write(request.data(), request.size());
+        std::error_code ec;
+        connection_.socket().write(request.data(), request.size(), ec);
+        if (ec) {
+            return ec;
+        }
 
-        asio::streambuf response;
-        connection_.socket().read_until(response, "\r\n\r\n");
-        const std::string response_str = streambuf_to_string(response);
+        net::stream_buffer response;
+        connection_.socket().read_until(response, "\r\n\r\n", ec);
+        if (ec) {
+            return ec;
+        }
+        const std::string response_str = net::stream_buffer_to_string(response);
 
         std::string status_line;
         std::map<std::string, std::string> headers;
         if (!handshake::parse_http_headers(response_str, status_line, headers) ||
             status_line.find("101") == std::string::npos) {
-            throw std::runtime_error("WebSocket handshake failed");
+            return make_error_code(errc::handshake_failed);
         }
 
 #if WSCPP_ENABLE_DEFLATE
@@ -168,16 +203,17 @@ private:
             }
         }
 #endif
+        return std::error_code();
     }
 
-    asio::io_context io_context_;
+    net::io_context io_context_;
     connection_type connection_;
     bool is_open_;
     bool is_closing_;
 #if WSCPP_ENABLE_DEFLATE
     bool request_deflate_;
 #endif
-    std::shared_ptr<asio::ssl::context> ssl_context_;
+    std::shared_ptr<net::ssl_context> ssl_context_;
 };
 
 client::client()
@@ -185,24 +221,24 @@ client::client()
 
 client::~client() = default;
 
-void client::connect(const std::string& url) {
-    pimpl_->connect(url);
+std::error_code client::connect(const std::string& url) {
+    return pimpl_->connect(url);
 }
 
 void client::close(uint16_t status_code, const std::string& reason) {
     pimpl_->close(status_code, reason);
 }
 
-void client::send_text(const std::string& text, bool fin) {
-    pimpl_->send_text(text, fin);
+std::error_code client::send_text(const std::string& text, bool fin) {
+    return pimpl_->send_text(text, fin);
 }
 
-void client::send_binary(const uint8_t* data, size_t size, bool fin) {
-    pimpl_->send_binary(data, size, fin);
+std::error_code client::send_binary(const uint8_t* data, size_t size, bool fin) {
+    return pimpl_->send_binary(data, size, fin);
 }
 
-void client::send_continuation(const std::string& data, bool fin) {
-    pimpl_->send_continuation(data, fin);
+std::error_code client::send_continuation(const std::string& data, bool fin) {
+    return pimpl_->send_continuation(data, fin);
 }
 
 void client::set_on_open(open_callback cb) {
@@ -235,6 +271,10 @@ void client::run() {
 
 void client::stop() {
     pimpl_->stop();
+}
+
+void client::set_ssl_context(std::shared_ptr<ssl_context> ctx) {
+    pimpl_->set_ssl_context(ctx);
 }
 
 #if WSCPP_ENABLE_DEFLATE

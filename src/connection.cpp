@@ -1,4 +1,5 @@
 #include <wscpp/connection.hpp>
+#include <wscpp/error.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/detail/utf8.hpp>
 #include <wscpp/frame/parser.hpp>
@@ -6,7 +7,8 @@
 #if WSCPP_ENABLE_DEFLATE
 #include <wscpp/extensions/permessage_deflate.hpp>
 #endif
-#include <stdexcept>
+#include <array>
+#include <mutex>
 #include <thread>
 #include <vector>
 #include <string>
@@ -15,7 +17,7 @@ namespace wscpp {
 
 class connection::impl {
 public:
-    explicit impl(asio::io_context& io_context)
+    explicit impl(net::io_context& io_context)
         : socket_(io_context),
           io_context_(io_context),
           role_(connection_role::server),
@@ -34,35 +36,49 @@ public:
 
     ~impl() {
         is_open_ = false;
-        try {
-            socket_.close();
-        } catch (...) {
-        }
+        socket_.close();
         join_reader_if_needed();
     }
 
-    void connect(const std::string& host, const std::string& port) {
+    std::error_code connect(const std::string& host, const std::string& port) {
         if (is_open_) {
-            throw std::runtime_error("Connection already open");
+            return make_error_code(errc::already_open);
         }
-        socket_.connect(host, port);
+        const std::error_code ec = socket_.connect(host, port);
+        if (ec) {
+            return ec;
+        }
         open_and_start_reader();
+        return std::error_code();
     }
 
-    void connect(const tcp::endpoint& endpoint) {
+    std::error_code connect(const tcp_endpoint& endpoint) {
         if (is_open_) {
-            throw std::runtime_error("Connection already open");
+            return make_error_code(errc::already_open);
         }
-        socket_.connect(endpoint);
+        const std::error_code ec = socket_.connect(endpoint);
+        if (ec) {
+            return ec;
+        }
         open_and_start_reader();
+        return std::error_code();
     }
 
-    void adopt(tcp::socket sock) {
+#if WSCPP_USE_ASIO
+    std::error_code adopt(net::tcp::socket sock) {
         if (is_open_) {
-            throw std::runtime_error("Connection already open");
+            return make_error_code(errc::already_open);
         }
-        socket_.adopt(std::move(sock));
+        return socket_.adopt(std::move(sock));
     }
+#else
+    std::error_code adopt(net::tcp_socket sock) {
+        if (is_open_) {
+            return make_error_code(errc::already_open);
+        }
+        return socket_.adopt(sock.release());
+    }
+#endif
 
     void activate() {
         open_and_start_reader();
@@ -81,44 +97,49 @@ public:
         }
         is_closing_ = true;
         frame::builder b;
-        std::vector<uint8_t> close_frame =
+        const std::vector<uint8_t> close_frame =
             b.build_close(status_code, reason, outbound_mask());
-        try {
-            socket_.write(close_frame.data(), close_frame.size());
-        } catch (...) {
+        {
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            std::error_code ec;
+            socket_.write(close_frame.data(), close_frame.size(), ec);
+            (void)ec;
         }
         is_open_ = false;
-        try {
-            socket_.close();
-        } catch (...) {
-        }
+        socket_.close();
         join_reader_if_needed();
         if (on_close_) {
             on_close_(status_code, reason);
         }
     }
 
-    void send_text(const std::string& text, bool fin) {
-        send_data_frame(frame::opcode::TEXT,
-                        reinterpret_cast<const uint8_t*>(text.data()), text.size(), fin);
+    std::error_code send_text(const std::string& text, bool fin) {
+        return send_data_frame(frame::opcode::TEXT,
+                               reinterpret_cast<const uint8_t*>(text.data()), text.size(), fin);
     }
 
-    void send_binary(const uint8_t* data, size_t size, bool fin) {
-        send_data_frame(frame::opcode::BINARY, data, size, fin);
+    std::error_code send_binary(const uint8_t* data, size_t size, bool fin) {
+        return send_data_frame(frame::opcode::BINARY, data, size, fin);
     }
 
-    void send_continuation(const uint8_t* data, size_t size, bool fin) {
-        send_data_frame(frame::opcode::CONTINUATION, data, size, fin);
+    std::error_code send_continuation(const uint8_t* data, size_t size, bool fin) {
+        return send_data_frame(frame::opcode::CONTINUATION, data, size, fin);
     }
 
-    void send_ping(const uint8_t* data, size_t size) {
+    std::error_code send_ping(const uint8_t* data, size_t size) {
         if (!is_open_) {
-            throw std::runtime_error("Connection not open");
+            return make_error_code(errc::not_open);
         }
         frame::builder b;
         const std::vector<uint8_t> frame =
             b.build_ping(data, size, outbound_mask());
-        socket_.write(frame.data(), frame.size());
+        std::lock_guard<std::mutex> lock(write_mutex_);
+        if (!is_open_ || is_closing_) {
+            return make_error_code(errc::not_open);
+        }
+        std::error_code ec;
+        socket_.write(frame.data(), frame.size(), ec);
+        return ec;
     }
 
     void set_role(connection_role role) { role_ = role; }
@@ -144,9 +165,9 @@ private:
         return role_ == connection_role::client;
     }
 
-    void send_data_frame(frame::opcode op, const uint8_t* data, size_t size, bool fin) {
+    std::error_code send_data_frame(frame::opcode op, const uint8_t* data, size_t size, bool fin) {
         if (!is_open_) {
-            throw std::runtime_error("Connection not open");
+            return make_error_code(errc::not_open);
         }
         const uint8_t* send_data = data;
         std::size_t send_size = size;
@@ -157,7 +178,7 @@ private:
         if (permessage_deflate_ && fin &&
             (op == frame::opcode::TEXT || op == frame::opcode::BINARY)) {
             if (!extensions::compress_message(data, size, compressed)) {
-                throw std::runtime_error("permessage-deflate compression failed");
+                return make_error_code(errc::compression_failed);
             }
             send_data = compressed.data();
             send_size = compressed.size();
@@ -172,7 +193,13 @@ private:
         }
         const std::vector<uint8_t> frame =
             b.build(op, send_data, send_size, fin, outbound_mask(), mask_key, rsv1);
-        socket_.write(frame.data(), frame.size());
+        std::lock_guard<std::mutex> lock(write_mutex_);
+        if (!is_open_ || is_closing_) {
+            return make_error_code(errc::not_open);
+        }
+        std::error_code ec;
+        socket_.write(frame.data(), frame.size(), ec);
+        return ec;
     }
 
     static bool is_valid_close_code(uint16_t code) {
@@ -203,16 +230,13 @@ private:
             frame::builder b;
             const std::vector<uint8_t> close_frame =
                 b.build_close(code, reason, outbound_mask());
-            try {
-                socket_.write(close_frame.data(), close_frame.size());
-            } catch (...) {
-            }
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            std::error_code ec;
+            socket_.write(close_frame.data(), close_frame.size(), ec);
+            (void)ec;
         }
         is_open_ = false;
-        try {
-            socket_.close();
-        } catch (...) {
-        }
+        socket_.close();
         if (on_close_) {
             on_close_(code, reason);
         }
@@ -298,6 +322,7 @@ private:
         message_opcode_ = frame::opcode::TEXT;
         message_compressed_ = false;
     }
+
     void open_and_start_reader() {
         is_open_ = true;
         if (on_open_) {
@@ -316,10 +341,7 @@ private:
 
     void shutdown_reader() {
         is_open_ = false;
-        try {
-            socket_.close();
-        } catch (...) {
-        }
+        socket_.close();
         join_reader_if_needed();
     }
 
@@ -334,17 +356,15 @@ private:
         reader_running_ = false;
     }
 
+    bool read_exact(void* data, std::size_t size, std::error_code& ec) {
+        ec.clear();
+        const std::size_t n = socket_.read(data, size, ec);
+        return !ec && n == size;
+    }
+
     void read_loop() {
         while (is_open_ && !is_closing_) {
-            try {
-                if (!read_one_frame()) {
-                    break;
-                }
-            } catch (const std::exception& ex) {
-                if (on_error_) {
-                    on_error_(ex.what());
-                }
-                is_open_ = false;
+            if (!read_one_frame()) {
                 break;
             }
         }
@@ -354,19 +374,27 @@ private:
         if (!is_open_) {
             return false;
         }
-        if (socket_.read(header_buffer_, 2) != 2) {
+        std::error_code ec;
+        if (!read_exact(header_buffer_, 2, ec)) {
+            if (ec && on_error_) {
+                on_error_(ec.message());
+            }
             is_open_ = false;
             return false;
         }
-        parse_header();
+        parse_header(ec);
+        if (ec) {
+            if (on_error_) {
+                on_error_(ec.message());
+            }
+            is_open_ = false;
+            return false;
+        }
         return is_open_;
     }
 
-    void read_header() {
-        (void)read_one_frame();
-    }
-
-    void parse_header() {
+    void parse_header(std::error_code& ec) {
+        ec.clear();
         const uint8_t first_byte = header_buffer_[0];
         const uint8_t second_byte = header_buffer_[1];
 
@@ -379,12 +407,16 @@ private:
         current_header_.payload_len = second_byte & 0x7F;
 
         if (current_header_.payload_len == 126) {
-            socket_.read(ext_payload_buffer_, 2);
+            if (!read_exact(ext_payload_buffer_, 2, ec)) {
+                return;
+            }
             current_header_.payload_len =
                 (static_cast<uint64_t>(ext_payload_buffer_[0]) << 8) |
                 ext_payload_buffer_[1];
         } else if (current_header_.payload_len == 127) {
-            socket_.read(ext_payload_buffer_, 8);
+            if (!read_exact(ext_payload_buffer_, 8, ec)) {
+                return;
+            }
             current_header_.payload_len = 0;
             for (int i = 0; i < 8; ++i) {
                 current_header_.payload_len =
@@ -393,7 +425,9 @@ private:
         }
 
         if (current_header_.mask) {
-            socket_.read(masking_key_buffer_, 4);
+            if (!read_exact(masking_key_buffer_, 4, ec)) {
+                return;
+            }
             current_header_.masking_key = {{
                 masking_key_buffer_[0], masking_key_buffer_[1],
                 masking_key_buffer_[2], masking_key_buffer_[3]
@@ -404,17 +438,20 @@ private:
             return;
         }
 
-        read_payload();
+        read_payload(ec);
     }
 
-    void read_payload() {
+    void read_payload(std::error_code& ec) {
+        ec.clear();
         if (current_header_.payload_len == 0) {
             handle_frame();
             return;
         }
 
         payload_buffer_.resize(static_cast<std::size_t>(current_header_.payload_len));
-        socket_.read(payload_buffer_.data(), payload_buffer_.size());
+        if (!read_exact(payload_buffer_.data(), payload_buffer_.size(), ec)) {
+            return;
+        }
 
         if (current_header_.mask) {
             for (std::size_t i = 0; i < payload_buffer_.size(); ++i) {
@@ -488,9 +525,11 @@ private:
         frame::builder b;
         const std::vector<uint8_t> close_frame =
             b.build_close(status_code, "", outbound_mask());
-        try {
-            socket_.write(close_frame.data(), close_frame.size());
-        } catch (...) {
+        {
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            std::error_code ec;
+            socket_.write(close_frame.data(), close_frame.size(), ec);
+            (void)ec;
         }
         is_open_ = false;
         if (on_close_) {
@@ -499,14 +538,25 @@ private:
     }
 
     void handle_ping_frame() {
+        if (is_closing_ || !is_open_) {
+            return;
+        }
         frame::builder b;
         const std::vector<uint8_t> pong_frame =
             b.build_pong(payload_buffer_.data(), payload_buffer_.size(), outbound_mask());
-        socket_.write(pong_frame.data(), pong_frame.size());
+        std::lock_guard<std::mutex> lock(write_mutex_);
+        if (is_closing_ || !is_open_) {
+            return;
+        }
+        std::error_code ec;
+        socket_.write(pong_frame.data(), pong_frame.size(), ec);
+        if (ec && on_error_) {
+            on_error_(ec.message());
+        }
     }
 
     socket_type socket_;
-    asio::io_context& io_context_;
+    net::io_context& io_context_;
     connection_role role_;
 
     uint8_t header_buffer_[2];
@@ -529,6 +579,7 @@ private:
     bool expecting_close_;
     bool reader_running_;
     std::thread reader_thread_;
+    std::mutex write_mutex_;
 
     open_callback on_open_;
     message_callback on_message_;
@@ -536,22 +587,28 @@ private:
     error_callback on_error_;
 };
 
-connection::connection(asio::io_context& io_context)
+connection::connection(net::io_context& io_context)
     : pimpl_(detail::make_unique<impl>(io_context)) {}
 
 connection::~connection() = default;
 
-void connection::connect(const std::string& host, const std::string& port) {
-    pimpl_->connect(host, port);
+std::error_code connection::connect(const std::string& host, const std::string& port) {
+    return pimpl_->connect(host, port);
 }
 
-void connection::connect(const tcp::endpoint& endpoint) {
-    pimpl_->connect(endpoint);
+std::error_code connection::connect(const tcp_endpoint& endpoint) {
+    return pimpl_->connect(endpoint);
 }
 
-void connection::adopt(tcp::socket socket) {
-    pimpl_->adopt(std::move(socket));
+#if WSCPP_USE_ASIO
+std::error_code connection::adopt(net::tcp::socket socket) {
+    return pimpl_->adopt(std::move(socket));
 }
+#else
+std::error_code connection::adopt(net::tcp_socket socket) {
+    return pimpl_->adopt(std::move(socket));
+}
+#endif
 
 void connection::activate() {
     pimpl_->activate();
@@ -565,20 +622,20 @@ void connection::close(uint16_t status_code, const std::string& reason) {
     pimpl_->close(status_code, reason);
 }
 
-void connection::send_text(const std::string& text, bool fin) {
-    pimpl_->send_text(text, fin);
+std::error_code connection::send_text(const std::string& text, bool fin) {
+    return pimpl_->send_text(text, fin);
 }
 
-void connection::send_binary(const uint8_t* data, size_t size, bool fin) {
-    pimpl_->send_binary(data, size, fin);
+std::error_code connection::send_binary(const uint8_t* data, size_t size, bool fin) {
+    return pimpl_->send_binary(data, size, fin);
 }
 
-void connection::send_continuation(const uint8_t* data, size_t size, bool fin) {
-    pimpl_->send_continuation(data, size, fin);
+std::error_code connection::send_continuation(const uint8_t* data, size_t size, bool fin) {
+    return pimpl_->send_continuation(data, size, fin);
 }
 
-void connection::send_ping(const uint8_t* data, size_t size) {
-    pimpl_->send_ping(data, size);
+std::error_code connection::send_ping(const uint8_t* data, size_t size) {
+    return pimpl_->send_ping(data, size);
 }
 
 void connection::set_role(connection_role role) {

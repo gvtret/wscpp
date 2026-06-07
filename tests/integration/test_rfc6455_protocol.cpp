@@ -44,8 +44,8 @@ TEST(Rfc6455Connection, FragmentedTextEcho) {
             }
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 
     std::thread t([&]() {
         client cli;
@@ -60,11 +60,12 @@ TEST(Rfc6455Connection, FragmentedTextEcho) {
                 done = true;
             }
         });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-            wait_for(done, 5000);
-        } catch (...) {
+        if (ec) {
             done = true;
+        } else {
+            wait_for(done, 5000);
         }
     });
 
@@ -85,24 +86,24 @@ TEST(Rfc6455Connection, ServerPingGetsPong) {
             conn->send_ping(body, 4);
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 
     std::thread t([&]() {
         client cli;
         cli.set_on_open([&]() {});
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        if (!ec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             cli.close();
-        } catch (...) {
         }
         done = true;
     });
 
     ASSERT_TRUE(wait_for(done, 5000));
-    t.join();
     srv.stop();
+    t.join();
 }
 
 TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
@@ -117,11 +118,13 @@ TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
             const uint8_t invalid[] = {0xC0, 0x80};
             const std::vector<uint8_t> frame =
                 b.build(frame::opcode::TEXT, invalid, 2, true, false);
-            conn->socket().write(frame.data(), frame.size());
+            std::error_code ec;
+            conn->socket().write(frame.data(), frame.size(), ec);
+            (void)ec;
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 
     std::thread t([&]() {
         client cli;
@@ -130,11 +133,12 @@ TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
             done = true;
         });
         cli.set_on_error([&](const std::string&) { done = true; });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-            wait_for(done, 5000);
-        } catch (...) {
+        if (ec) {
             done = true;
+        } else {
+            wait_for(done, 5000);
         }
     });
 
@@ -159,8 +163,8 @@ TEST(Rfc6455Connection, DeflateTextEcho) {
             }
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 
     std::thread t([&]() {
         client cli;
@@ -173,11 +177,12 @@ TEST(Rfc6455Connection, DeflateTextEcho) {
                 done = true;
             }
         });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
-            wait_for(done, 5000);
-        } catch (...) {
+        if (ec) {
             done = true;
+        } else {
+            wait_for(done, 5000);
         }
     });
 

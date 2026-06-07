@@ -10,14 +10,12 @@
  * @brief WebSocket connection: framing, reader thread, callbacks.
  */
 
-#include <asio.hpp>
-#include <asio/ssl/context.hpp>
-#include <asio/ssl/stream.hpp>
+#include <wscpp/net/transport.hpp>
 #include <memory>
 #include <functional>
 #include <string>
+#include <system_error>
 #include <vector>
-#include "net/asio_socket.hpp"
 #include "frame/parser.hpp"
 #include "frame/builder.hpp"
 
@@ -34,9 +32,9 @@ enum class connection_role {
  */
 class connection {
 public:
-    using tcp = asio::ip::tcp;
-    using ssl_context = asio::ssl::context;
-    using socket_type = net::asio_socket;
+    using tcp_endpoint = net::tcp_endpoint;
+    using ssl_context = net::ssl_context;
+    using socket_type = net::stream_socket;
 
     using message_callback = std::function<void(const std::vector<uint8_t>&, frame::opcode)>;
     using close_callback = std::function<void(uint16_t, const std::string&)>;
@@ -45,22 +43,27 @@ public:
 
     /**
      * @brief Create connection bound to @p io_context.
-     * @param io_context ASIO io_context for socket operations.
+     * @param io_context Transport event loop (ASIO or stub).
      */
-    explicit connection(asio::io_context& io_context);
+    explicit connection(net::io_context& io_context);
     ~connection();
 
     connection(const connection&) = delete;
     connection& operator=(const connection&) = delete;
 
     /** @brief Connect outbound TCP socket to host:port. */
-    void connect(const std::string& host, const std::string& port);
+    std::error_code connect(const std::string& host, const std::string& port);
 
     /** @brief Connect to TCP endpoint. */
-    void connect(const tcp::endpoint& endpoint);
+    std::error_code connect(const tcp_endpoint& endpoint);
 
+#if WSCPP_USE_ASIO
     /** @brief Take ownership of accepted TCP socket (server path). */
-    void adopt(tcp::socket socket);
+    std::error_code adopt(net::tcp::socket socket);
+#else
+    /** @brief Take ownership of accepted TCP socket (server path). */
+    std::error_code adopt(net::tcp_socket socket);
+#endif
 
     /** @brief Start background frame reader; invokes on_open first. */
     void activate();
@@ -72,16 +75,16 @@ public:
     void close(uint16_t status_code = 1000, const std::string& reason = "");
 
     /** @brief Send text frame. */
-    void send_text(const std::string& text, bool fin = true);
+    std::error_code send_text(const std::string& text, bool fin = true);
 
     /** @brief Send binary frame. */
-    void send_binary(const uint8_t* data, size_t size, bool fin = true);
+    std::error_code send_binary(const uint8_t* data, size_t size, bool fin = true);
 
     /** @brief Send continuation fragment (after TEXT/BINARY with fin=false). */
-    void send_continuation(const uint8_t* data, size_t size, bool fin = true);
+    std::error_code send_continuation(const uint8_t* data, size_t size, bool fin = true);
 
     /** @brief Send ping control frame (RFC 6455 §5.5). */
-    void send_ping(const uint8_t* data = nullptr, size_t size = 0);
+    std::error_code send_ping(const uint8_t* data = nullptr, size_t size = 0);
 
     /** @brief Set client/server role for RFC 6455 masking (default: server). */
     void set_role(connection_role role);

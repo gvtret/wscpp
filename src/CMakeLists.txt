@@ -1,7 +1,6 @@
 add_library(wscpp STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/error.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/wscpp.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/net/asio_socket.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/crypto/ssl_context.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/frame/parser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/frame/builder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/handshake.cpp
@@ -9,6 +8,18 @@ add_library(wscpp STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/client.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/server.cpp
 )
+
+if(WSCPP_USE_ASIO)
+    target_sources(wscpp PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/net/asio_socket.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/crypto/ssl_context.cpp
+    )
+else()
+    target_sources(wscpp PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/net/linux_socket.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/net/openssl_context.cpp
+    )
+endif()
 
 if(WSCPP_ENABLE_DEFLATE)
     target_sources(wscpp PRIVATE
@@ -29,14 +40,19 @@ target_include_directories(wscpp
         ${CMAKE_BINARY_DIR}
 )
 
-target_compile_definitions(wscpp
-    PUBLIC
-        ASIO_STANDALONE
-)
+if(WSCPP_USE_ASIO)
+    target_compile_definitions(wscpp
+        PUBLIC
+            WSCPP_USE_ASIO=1
+            ASIO_STANDALONE
+    )
+    target_link_libraries(wscpp PUBLIC asio::asio)
+else()
+    target_compile_definitions(wscpp PUBLIC WSCPP_USE_ASIO=0)
+endif()
 
 target_link_libraries(wscpp
     PUBLIC
-        asio::asio
         OpenSSL::SSL
         OpenSSL::Crypto
         Threads::Threads

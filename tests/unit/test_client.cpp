@@ -38,7 +38,7 @@ TEST(ClientTest, InitialState) {
 
 TEST(ClientTest, CloseWithoutConnectIsSafe) {
     client cli;
-    EXPECT_NO_THROW(cli.close());
+    cli.close();
     EXPECT_FALSE(cli.is_open());
 }
 
@@ -53,8 +53,8 @@ TEST(ClientTest, LoopbackEcho) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
-    srv.listen(port);
-    srv.start();
+    ASSERT_FALSE(srv.listen(port));
+    ASSERT_FALSE(srv.start());
 
     std::thread t([&]() {
         client cli;
@@ -64,10 +64,10 @@ TEST(ClientTest, LoopbackEcho) {
             cli.close();
             done = true;
         });
-        try {
+        const std::error_code ec =
             cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/echo");
-        } catch (const std::exception& ex) {
-            ADD_FAILURE() << ex.what();
+        if (ec) {
+            ADD_FAILURE() << ec.message();
             done = true;
         }
         wait_for(done, 5000);

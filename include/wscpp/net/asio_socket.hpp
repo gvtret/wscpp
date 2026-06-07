@@ -10,6 +10,7 @@
 #include <asio/ssl.hpp>
 #include <memory>
 #include <string>
+#include <system_error>
 
 namespace wscpp {
 namespace net {
@@ -28,15 +29,15 @@ public:
     asio_socket(const asio_socket&) = delete;
     asio_socket& operator=(const asio_socket&) = delete;
 
-    void connect(const std::string& host, const std::string& port);
-    void connect(const tcp::endpoint& endpoint);
-    void adopt(tcp::socket socket);
+    std::error_code connect(const std::string& host, const std::string& port);
+    std::error_code connect(const tcp::endpoint& endpoint);
+    std::error_code adopt(tcp::socket socket);
     void close();
 
-    std::size_t write(const void* data, std::size_t size);
-    std::size_t read(void* data, std::size_t size);
-    std::size_t read_some(void* data, std::size_t size);
-    std::size_t read_until(asio::streambuf& buf, const std::string& delim);
+    std::size_t write(const void* data, std::size_t size, std::error_code& ec);
+    std::size_t read(void* data, std::size_t size, std::error_code& ec);
+    std::size_t read_some(void* data, std::size_t size, std::error_code& ec);
+    std::size_t read_until(asio::streambuf& buf, const std::string& delim, std::error_code& ec);
 
     tcp::socket& native_socket();
     const tcp::socket& native_socket() const;
@@ -44,13 +45,13 @@ public:
     bool is_open() const;
 
     /** @brief Wrap socket with TLS using @p ctx. */
-    void enable_ssl(std::shared_ptr<ssl_context> ctx);
+    std::error_code enable_ssl(std::shared_ptr<ssl_context> ctx);
 
     /** @brief Set TLS SNI hostname (client, before handshake). */
-    void set_ssl_hostname(const std::string& host);
+    std::error_code set_ssl_hostname(const std::string& host);
 
     /** @brief Perform TLS handshake (@p as_client true for client role). */
-    void ssl_handshake(bool as_client);
+    std::error_code ssl_handshake(bool as_client);
 
     bool is_ssl() const;
 
