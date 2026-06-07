@@ -5,6 +5,7 @@
 #include <asio/read_until.hpp>
 #include <asio/write.hpp>
 #include <asio/error_code.hpp>
+#include <openssl/ssl.h>
 #include <stdexcept>
 
 namespace wscpp {
@@ -111,6 +112,15 @@ public:
         ssl_enabled_ = true;
     }
 
+    void set_ssl_hostname(const std::string& host) {
+        if (!ssl_) {
+            throw std::runtime_error("SSL not enabled");
+        }
+        if (SSL_set_tlsext_host_name(ssl_->native_handle(), host.c_str()) != 1) {
+            throw std::runtime_error("Failed to set TLS SNI hostname");
+        }
+    }
+
     void ssl_handshake(bool as_client) {
         if (!ssl_) {
             throw std::runtime_error("SSL not enabled");
@@ -187,6 +197,10 @@ bool asio_socket::is_open() const {
 
 void asio_socket::enable_ssl(std::shared_ptr<ssl_context> ctx) {
     pimpl_->enable_ssl(ctx);
+}
+
+void asio_socket::set_ssl_hostname(const std::string& host) {
+    pimpl_->set_ssl_hostname(host);
 }
 
 void asio_socket::ssl_handshake(bool as_client) {

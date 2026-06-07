@@ -37,6 +37,7 @@ public:
 
         if (info.secure) {
             connection_.socket().enable_ssl(ssl_context_);
+            connection_.socket().set_ssl_hostname(info.host);
             connection_.socket().connect(info.host, info.port);
             connection_.socket().ssl_handshake(true);
         } else {

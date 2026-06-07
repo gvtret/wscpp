@@ -36,6 +36,7 @@ public:
     bool is_open() const;
 
     void enable_ssl(std::shared_ptr<ssl_context> ctx);
+    void set_ssl_hostname(const std::string& host);
     void ssl_handshake(bool as_client);
     bool is_ssl() const;
 

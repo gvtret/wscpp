@@ -88,3 +88,34 @@ TEST(OpenSSLTest, MultipleMethods) {
     EXPECT_NE(ctx3.native_handle().native_handle(), nullptr);
     EXPECT_NE(ctx4.native_handle().native_handle(), nullptr);
 }
+
+TEST(OpenSSLTest, LoadVerifyFileInvalidPath) {
+    wscpp::crypto::ssl_context ctx;
+    EXPECT_FALSE(ctx.load_verify_file("/nonexistent/ca-bundle.pem"));
+}
+
+TEST(OpenSSLTest, LoadCertChainInvalidPath) {
+    wscpp::crypto::ssl_context ctx;
+    EXPECT_FALSE(ctx.load_cert_chain("/nonexistent/cert.pem"));
+}
+
+TEST(OpenSSLTest, LoadPrivateKeyInvalidPath) {
+    wscpp::crypto::ssl_context ctx;
+    EXPECT_FALSE(ctx.load_private_key("/nonexistent/key.pem"));
+}
+
+TEST(OpenSSLTest, TlsClientServerMethods) {
+    wscpp::crypto::ssl_context client_ctx(wscpp::crypto::ssl_context::method::tls_client);
+    wscpp::crypto::ssl_context server_ctx(wscpp::crypto::ssl_context::method::tls_server);
+    EXPECT_NE(client_ctx.native_handle().native_handle(), nullptr);
+    EXPECT_NE(server_ctx.native_handle().native_handle(), nullptr);
+}
+
+TEST(OpenSSLTest, DisableLegacySslProtocols) {
+    wscpp::crypto::ssl_context ctx(wscpp::crypto::ssl_context::method::tls_client);
+    ctx.set_options(
+        asio::ssl::context::no_sslv2 |
+        asio::ssl::context::no_sslv3);
+    ctx.set_verify_mode(asio::ssl::verify_peer);
+    ctx.set_verify_depth(4);
+}

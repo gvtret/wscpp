@@ -37,6 +37,29 @@ TEST(AsioSocketTest, CloseSocket) {
     EXPECT_FALSE(socket.is_open());
 }
 
+// Test SSL handshake requires enable_ssl first
+TEST(AsioSocketTest, SslHandshakeRequiresEnableSsl) {
+    asio::io_context io_context;
+    wscpp::net::asio_socket socket(io_context);
+    EXPECT_THROW(socket.ssl_handshake(true), std::runtime_error);
+}
+
+// TLS SNI hostname can be set after enable_ssl
+TEST(AsioSocketTest, SetSslHostnameAfterEnableSsl) {
+    asio::io_context io_context;
+    wscpp::net::asio_socket socket(io_context);
+    std::shared_ptr<asio::ssl::context> ctx(
+        new asio::ssl::context(asio::ssl::context::tlsv12_client));
+    socket.enable_ssl(ctx);
+    EXPECT_NO_THROW(socket.set_ssl_hostname("example.com"));
+}
+
+TEST(AsioSocketTest, SetSslHostnameRequiresEnableSsl) {
+    asio::io_context io_context;
+    wscpp::net::asio_socket socket(io_context);
+    EXPECT_THROW(socket.set_ssl_hostname("example.com"), std::runtime_error);
+}
+
 // Test SSL context
 TEST(AsioSocketTest, SetSSLContext) {
     asio::io_context io_context;
