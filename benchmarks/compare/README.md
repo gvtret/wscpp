@@ -11,6 +11,7 @@ Side-by-side scenarios for C++11 WebSocket libraries. Built when `WSCPP_BUILD_BE
 | `bench_roundtrip` | wscpp | current | echo latency, 64 KiB throughput |
 | `bench_websocketpp_roundtrip` | websocketpp | 0.8.2 | echo latency |
 | `bench_ixwebsocket_roundtrip` | IXWebSocket | 11.4.6 | echo latency, 64 KiB throughput |
+| `bench_libwebsockets_roundtrip` | libwebsockets | 4.3.x | echo latency (pkg-config) |
 | `bench_easywsclient_connect` | easywsclient | master | connect latency (client-only) |
 
 Build all:
@@ -23,6 +24,7 @@ cmake --build build --target benchmarks compare_benchmarks
 ./build/bin/bench_roundtrip
 ./build/bin/bench_websocketpp_roundtrip
 ./build/bin/bench_ixwebsocket_roundtrip
+./build/bin/bench_libwebsockets_roundtrip
 ./build/bin/bench_easywsclient_connect
 ```
 
@@ -32,6 +34,7 @@ CMake options (default ON when compare is enabled):
 |--------|--------|
 | `WSCPP_COMPARE_IXWEBSOCKET` | IXWebSocket roundtrip bench |
 | `WSCPP_COMPARE_EASYWSCLIENT` | easywsclient connect bench |
+| `WSCPP_COMPARE_LIBWEBSOCKETS` | libwebsockets roundtrip bench (needs `libwebsockets-dev`) |
 
 ## External libraries (manual setup)
 
@@ -41,7 +44,6 @@ These require system packages or vendored deps; add locally following the same e
 |---------|-----|-------|
 | Boost.Beast | Boost 1.83+ | Needs Boost.Asio + OpenSSL |
 | Simple-WebSocket-Server | tag | ASIO + OpenSSL |
-| libwebsockets | 4.3.x | C API baseline |
 
 Metrics to record: echo latency p50/p99, throughput MB/s, static binary size (`ls -la`), peak RSS (`/usr/bin/time -v`).
 

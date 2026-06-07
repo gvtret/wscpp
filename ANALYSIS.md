@@ -4,16 +4,16 @@ Comparative catalog and benchmark results for **wscpp** (v1.0.2). Numbers below 
 
 ## Executive summary
 
-| | wscpp | websocketpp | IXWebSocket | easywsclient |
-|---|-------|-------------|-------------|--------------|
-| **Role** | client + server | client + server | client + server | client only |
-| **C++11, no Boost** | yes | yes (needs ASIO) | yes | yes |
-| **Echo p50 (localhost)** | 0.26 ms | 0.26 ms | 0.24 ms | — |
-| **Echo / connect p99** | 0.34 ms | 0.61 ms | 0.37 ms | 1.78 ms connect |
-| **64 KiB throughput** | 84 MB/s | — | 66 MB/s | — |
-| **Bench binary size** | 379 KB | 708 KB | 485 KB | 370 KB |
+| | wscpp | websocketpp | IXWebSocket | libwebsockets | easywsclient |
+|---|-------|-------------|-------------|---------------|--------------|
+| **Role** | client + server | client + server | client + server | client + server | client only |
+| **C++11, no Boost** | yes | yes (needs ASIO) | yes | C API | yes |
+| **Echo p50 (localhost)** | 0.26 ms | 0.26 ms | 0.24 ms | 0.27 ms | — |
+| **Echo / connect p99** | 0.34 ms | 0.61 ms | 0.37 ms | 0.40 ms | 1.78 ms connect |
+| **64 KiB throughput** | 84 MB/s | — | 66 MB/s | — | — |
+| **Bench binary size** | 379 KB | 708 KB | 485 KB | 131 KB* | 370 KB |
 
-On localhost echo, wscpp, websocketpp, and IXWebSocket are in the same latency band. wscpp offers the smallest full client+server footprint among measured stacks without sacrificing RFC 6455 coverage in v1.0.2.
+On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the same latency band. wscpp offers the smallest **statically linked** full client+server footprint among measured C++ stacks.
 
 ## Methodology
 
@@ -47,9 +47,9 @@ On localhost echo, wscpp, websocketpp, and IXWebSocket are in the same latency b
 | 64 KiB binary throughput | `bench_roundtrip`, `bench_ixwebsocket_roundtrip` | 100 iterations |
 | Connect latency | `bench_easywsclient_connect` | TCP + WS handshake, client-only |
 
-**Environment (2026-06-07):** Linux/WSL2, Release, GCC 15, `127.0.0.1`, no TLS in compare benches.
+**Limitations:** localhost only; single machine; no concurrent connections; no TLS in compare suite; Beast / Simple-WebSocket-Server require manual setup; libwebsockets bench needs `libwebsockets-dev` (optional CMake target).
 
-**Limitations:** localhost only; single machine; no concurrent connections; no TLS in compare suite; Beast / Simple-WebSocket-Server / libwebsockets require manual setup (see `benchmarks/compare/README.md`).
+**Environment (2026-06-07):** Linux/WSL2, Release, GCC 15, `127.0.0.1`, no TLS in compare benches.
 
 ## Tier 1 — native C++, C++11, client + server
 
@@ -123,7 +123,10 @@ On localhost echo, wscpp, websocketpp, and IXWebSocket are in the same latency b
 | **wscpp** | 0.26 ms | 0.34 ms | 84 MB/s | 379 KB |
 | **websocketpp** 0.8.2 | 0.26 ms | 0.61 ms | — | 708 KB |
 | **IXWebSocket** 11.4.6 | 0.24 ms | 0.37 ms | 66 MB/s | 485 KB |
+| **libwebsockets** 4.3.5 | 0.27 ms | 0.40 ms | — | 131 KB* |
 | **easywsclient** (connect) | 1.16 ms | 1.78 ms | — | 370 KB |
+
+\* libwebsockets bench binary links the system shared library (`libwebsockets.so`); size is not directly comparable to statically linked peers.
 
 easywsclient row measures full TCP + WebSocket handshake (blocking API); not comparable to echo latency rows.
 
@@ -144,12 +147,13 @@ cmake --build build --target benchmarks compare_benchmarks
 ./build/bin/bench_roundtrip
 ./build/bin/bench_websocketpp_roundtrip
 ./build/bin/bench_ixwebsocket_roundtrip
+./build/bin/bench_libwebsockets_roundtrip
 ./build/bin/bench_easywsclient_connect
 ./build/bin/bench_frame_parse
 ./build/bin/bench_masking
 ```
 
-Manual compare targets (Beast, Simple-WebSocket-Server, libwebsockets): `benchmarks/compare/README.md`.
+Manual compare targets (Beast, Simple-WebSocket-Server): `benchmarks/compare/README.md`.
 
 ## Recommendations
 
@@ -158,7 +162,7 @@ Manual compare targets (Beast, Simple-WebSocket-Server, libwebsockets): `benchma
 | Embedded / minimal deps, C++11 | **wscpp** (379 KB echo binary, no Boost) |
 | Client-only, smallest code | **easywsclient** (~600 LOC; blocking) |
 | Maximum features + extensions | **websocketpp**, **Boost.Beast** |
-| Lowest localhost echo (this setup) | wscpp, websocketpp, IXWebSocket (within ~0.1 ms p50) |
+| Lowest localhost echo (this setup) | wscpp, websocketpp, IXWebSocket, libwebsockets (within ~0.1 ms p50) |
 | Mobile / cross-platform SDK | **IXWebSocket** |
 | C codebase / mature ops stack | **libwebsockets** |
 | Need permessage-deflate now | IXWebSocket, Beast, libwebsockets (not wscpp v1.0) |
@@ -170,4 +174,4 @@ Manual compare targets (Beast, Simple-WebSocket-Server, libwebsockets): `benchma
 | 2026-06-07 | Initial catalog (F0) |
 | 2026-06-07 | Post-RFC gate numbers; wscpp + websocketpp |
 | 2026-06-07 | UTF-8 §8.1; v1.0.2 baseline |
-| 2026-06-07 | F2 expansion: IXWebSocket, easywsclient; F3 final analysis |
+| 2026-06-07 | F2: libwebsockets 4.3.5 echo bench (pkg-config) |

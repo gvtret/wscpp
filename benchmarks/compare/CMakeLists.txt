@@ -64,6 +64,26 @@ if(WSCPP_COMPARE_EASYWSCLIENT)
     list(APPEND WSCPP_COMPARE_TARGETS bench_easywsclient_connect)
 endif()
 
+# --- libwebsockets 4.3.x (system pkg-config) ---
+option(WSCPP_COMPARE_LIBWEBSOCKETS "Build libwebsockets compare benchmark" ON)
+if(WSCPP_COMPARE_LIBWEBSOCKETS)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(LWS IMPORTED_TARGET libwebsockets)
+    endif()
+    if(LWS_FOUND)
+        add_executable(bench_libwebsockets_roundtrip bench_libwebsockets_roundtrip.cpp)
+        target_include_directories(bench_libwebsockets_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+        target_include_directories(bench_libwebsockets_roundtrip SYSTEM PRIVATE
+            ${asio_SOURCE_DIR}/asio/include
+        )
+        target_link_libraries(bench_libwebsockets_roundtrip PRIVATE PkgConfig::LWS Threads::Threads)
+        list(APPEND WSCPP_COMPARE_TARGETS bench_libwebsockets_roundtrip)
+    else()
+        message(STATUS "libwebsockets not found; skip bench_libwebsockets_roundtrip")
+    endif()
+endif()
+
 add_custom_target(compare_benchmarks
     DEPENDS ${WSCPP_COMPARE_TARGETS}
     COMMENT "Build all comparative WebSocket benchmarks"

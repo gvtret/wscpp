@@ -23,6 +23,12 @@
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
 **Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
 
+## 2026-06-07 — F2: libwebsockets compare bench
+
+**Done:** `bench_libwebsockets_roundtrip` via pkg-config (4.3.5); ANALYSIS/README updated. F2 harness now covers 5 libraries (+ wscpp). 90/90 tests pass.
+**State:** `main`, VERSION 1.0.2.
+**Next:** RFC 7692 permessage-deflate post-v1.0; optional Beast/SWS manual benches.
+
 ## 2026-06-07 — F3 + G3: final analysis and contributing sync
 
 **Done:** ANALYSIS.md finalized (executive summary, feature matrix, limitations, recommendations); CONTRIBUTING.md updated with benchmark refresh policy. 90/90 tests pass.
