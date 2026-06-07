@@ -143,10 +143,7 @@ parse_result parser::parse_header(const uint8_t *data, size_t size, size_t &cons
         if (header_.payload_len > 0) {
             buffer_.reserve(static_cast<std::size_t>(header_.payload_len));
         }
-    } else if (header_.payload_len == 126) {
-        state_ = state::PAYLOAD_LENGTH_EXT;
-        payload_remaining_ = 0;
-    } else { // payload_len == 127
+    } else if (header_.payload_len == 126 || header_.payload_len == 127) {
         state_ = state::PAYLOAD_LENGTH_EXT;
         payload_remaining_ = 0;
     }

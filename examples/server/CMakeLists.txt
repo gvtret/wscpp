@@ -9,3 +9,5 @@ add_executable(wscpp_example_server
 target_link_libraries(wscpp_example_server
     wscpp
 )
+
+wscpp_target_strict_warnings(wscpp_example_server)

@@ -30,5 +30,7 @@ if(TARGET asio::asio)
     target_compile_definitions(wscpp_test_unit PRIVATE ASIO_STANDALONE)
 endif()
 
+wscpp_target_strict_warnings(wscpp_test_unit)
+
 include(GoogleTest)
 gtest_discover_tests(wscpp_test_unit)

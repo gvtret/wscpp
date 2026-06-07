@@ -65,8 +65,7 @@ int main() {
     };
 
     client.on_message = [&](std::shared_ptr<WsClient::Connection> connection,
-                            std::shared_ptr<WsClient::InMessage> message) {
-        (void)message;
+                            std::shared_ptr<WsClient::InMessage>) {
         const int n = next_send.load() - 1;
         if (n >= 0 && n < samples) {
             const double ms =

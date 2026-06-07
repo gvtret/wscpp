@@ -38,7 +38,7 @@ class linux_socket {
     int native_fd() const;
     bool is_open() const;
 
-    std::error_code enable_ssl(std::shared_ptr<ssl_context> ctx);
+    std::error_code enable_ssl(const std::shared_ptr<ssl_context> &ctx);
     std::error_code set_ssl_hostname(const std::string &host);
     std::error_code ssl_handshake(bool as_client);
     bool is_ssl() const;
@@ -48,7 +48,6 @@ class linux_socket {
     std::size_t read_some_raw(void *data, std::size_t size, std::error_code &ec);
     std::error_code ssl_error(int result);
 
-    io_context &io_context_;
     int fd_;
     std::shared_ptr<openssl_context> ssl_context_;
     ssl_st *ssl_;

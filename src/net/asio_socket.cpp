@@ -4,6 +4,7 @@
 #include <asio/read_until.hpp>
 #include <asio/write.hpp>
 #include <openssl/ssl.h>
+#include <utility>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/net/asio_socket.hpp>
@@ -109,8 +110,8 @@ class asio_socket::impl {
         if (!ctx) {
             return std::error_code();
         }
-        ssl_context_ = ctx;
         ssl_.reset(new asio::ssl::stream<tcp::socket &>(socket_, *ctx));
+        ssl_context_ = std::move(ctx);
         ssl_enabled_ = true;
         return std::error_code();
     }
@@ -201,7 +202,7 @@ bool asio_socket::is_open() const {
 }
 
 std::error_code asio_socket::enable_ssl(std::shared_ptr<ssl_context> ctx) {
-    return pimpl_->enable_ssl(ctx);
+    return pimpl_->enable_ssl(std::move(ctx));
 }
 
 std::error_code asio_socket::set_ssl_hostname(const std::string &host) {

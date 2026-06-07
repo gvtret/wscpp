@@ -22,8 +22,7 @@ int main(int argc, char *argv[]) {
         cli.send_text("Hello, WebSocket!");
     });
 
-    cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode op) {
-        (void)op;
+    cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
         const std::string message(data.begin(), data.end());
         std::cout << "Received: " << message << std::endl;
         cli.close();

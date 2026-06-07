@@ -72,7 +72,6 @@ int main(int argc, char *argv[]) {
         std::cout << "Secure connection from " << conn->socket().native_socket().remote_endpoint()
                   << std::endl;
 #else
-        (void)conn;
         std::cout << "Secure connection accepted" << std::endl;
 #endif
         conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {

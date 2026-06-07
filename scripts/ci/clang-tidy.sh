@@ -17,19 +17,19 @@ if ! command -v clang-tidy >/dev/null 2>&1; then
 fi
 
 mapfile -t files < <(
-    find src include/wscpp -type f \( -name '*.cpp' -o -name '*.hpp' \) | sort
+    find src -type f -name '*.cpp' | sort
 )
+
+if [ "${#files[@]}" -eq 0 ]; then
+    echo "No library .cpp files found for clang-tidy" >&2
+    exit 1
+fi
 
 failed=0
 for f in "${files[@]}"; do
-    # Headers without a translation unit are analyzed via their includer when listed in compile_commands.
-    if [[ "$f" == *.hpp && "$f" != */detail/* ]]; then
-        continue
-    fi
-    if [[ "$f" == *.hpp ]]; then
-        continue
-    fi
-    if ! clang-tidy -p "$build_dir" "$f" --quiet; then
+    if ! clang-tidy -p "$build_dir" "$f" \
+        -warnings-as-errors='*' \
+        --quiet 2>&1; then
         echo "clang-tidy failed: $f" >&2
         failed=1
     fi
@@ -39,4 +39,4 @@ if [ "$failed" -ne 0 ]; then
     exit 1
 fi
 
-echo "clang-tidy: OK (${#files[@]} files scanned)"
+echo "clang-tidy: OK (${#files[@]} translation units)"

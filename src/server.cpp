@@ -1,3 +1,4 @@
+#include <utility>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/handshake.hpp>
@@ -117,9 +118,7 @@ class server::impl {
         ssl_context_->set_options(asio::ssl::context::default_workarounds |
                                   asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3);
 #else
-        const std::error_code ec =
-            net::ssl_context::make(net::ssl_context::role::server, ssl_context_);
-        (void)ec;
+        net::ssl_context::make(net::ssl_context::role::server, ssl_context_);
 #endif
     }
 
@@ -170,22 +169,22 @@ class server::impl {
 
     void set_ssl_context(std::shared_ptr<ssl_context> ctx) {
         if (ctx) {
-            ssl_context_ = ctx;
+            ssl_context_ = std::move(ctx);
             ssl_enabled_ = true;
         }
     }
 
     void set_on_connection(connection_callback cb) {
-        on_connection_ = cb;
+        on_connection_ = std::move(cb);
     }
     void set_on_message(message_callback cb) {
-        on_message_ = cb;
+        on_message_ = std::move(cb);
     }
     void set_on_close(close_callback cb) {
-        on_close_ = cb;
+        on_close_ = std::move(cb);
     }
     void set_on_error(error_callback cb) {
-        on_error_ = cb;
+        on_error_ = std::move(cb);
     }
 
     std::error_code start() {
@@ -361,7 +360,7 @@ class server::impl {
         add_connection(conn);
     }
 
-    bool perform_handshake(std::shared_ptr<connection> conn) {
+    bool perform_handshake(const std::shared_ptr<connection> &conn) {
         net::stream_buffer request_buf;
         std::error_code ec;
         conn->socket().read_until(request_buf, "\r\n\r\n", ec);
@@ -412,12 +411,12 @@ class server::impl {
         return true;
     }
 
-    void add_connection(std::shared_ptr<connection> conn) {
+    void add_connection(const std::shared_ptr<connection> &conn) {
         std::lock_guard<std::mutex> lock(connections_mutex_);
         connections_[conn.get()] = conn;
     }
 
-    void remove_connection(std::shared_ptr<connection> conn) {
+    void remove_connection(const std::shared_ptr<connection> &conn) {
         std::lock_guard<std::mutex> lock(connections_mutex_);
         connections_.erase(conn.get());
     }
@@ -514,23 +513,23 @@ std::error_code server::listen(const std::string &host, uint16_t port) {
 }
 
 void server::set_ssl_context(std::shared_ptr<ssl_context> ctx) {
-    pimpl_->set_ssl_context(ctx);
+    pimpl_->set_ssl_context(std::move(ctx));
 }
 
 void server::set_on_connection(connection_callback cb) {
-    pimpl_->set_on_connection(cb);
+    pimpl_->set_on_connection(std::move(cb));
 }
 
 void server::set_on_message(message_callback cb) {
-    pimpl_->set_on_message(cb);
+    pimpl_->set_on_message(std::move(cb));
 }
 
 void server::set_on_close(close_callback cb) {
-    pimpl_->set_on_close(cb);
+    pimpl_->set_on_close(std::move(cb));
 }
 
 void server::set_on_error(error_callback cb) {
-    pimpl_->set_on_error(cb);
+    pimpl_->set_on_error(std::move(cb));
 }
 
 std::error_code server::start() {

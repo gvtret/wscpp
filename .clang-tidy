@@ -3,6 +3,7 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,
   -bugprone-macro-parentheses,
+  -bugprone-unused-return-value,
   clang-analyzer-*,
   misc-*,
   -misc-const-correctness,
@@ -16,8 +17,21 @@ Checks: >
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-function-cognitive-complexity,
-  -readability-else-after-return
+  -readability-else-after-return,
+  -modernize-return-braced-init-list,
+  -modernize-use-default-member-init,
+  -performance-enum-size,
+  -modernize-loop-convert,
+  -modernize-use-auto,
+  -readability-implicit-bool-conversion,
+  -readability-convert-member-functions-to-static,
+  -readability-simplify-boolean-expr,
+  -modernize-make-shared,
+  -readability-named-parameter,
+  -readability-math-missing-parentheses,
+  -performance-trivially-destructible,
+  -misc-use-internal-linkage
 
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 HeaderFilterRegex: 'include/wscpp/.*|src/.*'
 FormatStyle: file

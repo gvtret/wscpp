@@ -4,30 +4,31 @@
 #include <asio/ssl/verify_mode.hpp>
 #include <wscpp/crypto/ssl_context.hpp>
 
-namespace wscpp {
-namespace crypto {
-
-// Helper function to convert method to asio::ssl::context method
-static asio::ssl::context::method to_asio_method(ssl_context::method m) {
+namespace {
+asio::ssl::context::method to_asio_method(wscpp::crypto::ssl_context::method m) {
     switch (m) {
-    case ssl_context::method::tlsv12:
+    case wscpp::crypto::ssl_context::method::tlsv12:
         return asio::ssl::context::tlsv12;
-    case ssl_context::method::tlsv11:
+    case wscpp::crypto::ssl_context::method::tlsv11:
         return asio::ssl::context::tlsv11;
-    case ssl_context::method::tlsv13:
+    case wscpp::crypto::ssl_context::method::tlsv13:
         return asio::ssl::context::tlsv13;
-    case ssl_context::method::sslv2:
+    case wscpp::crypto::ssl_context::method::sslv2:
         return asio::ssl::context::sslv2;
-    case ssl_context::method::sslv3:
+    case wscpp::crypto::ssl_context::method::sslv3:
         return asio::ssl::context::sslv3;
-    case ssl_context::method::tls_client:
+    case wscpp::crypto::ssl_context::method::tls_client:
         return asio::ssl::context::tls_client;
-    case ssl_context::method::tls_server:
+    case wscpp::crypto::ssl_context::method::tls_server:
         return asio::ssl::context::tls_server;
     default:
         return asio::ssl::context::tlsv12;
     }
 }
+} // namespace
+
+namespace wscpp {
+namespace crypto {
 
 ssl_context::ssl_context(method m) {
     context_ = std::make_shared<asio::ssl::context>(to_asio_method(m));

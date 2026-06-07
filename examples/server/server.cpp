@@ -25,8 +25,7 @@ int main(int argc, char *argv[]) {
         std::cout << "New connection accepted" << std::endl;
 #endif
 
-        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode op) {
-            (void)op;
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             const std::string message(data.begin(), data.end());
             std::cout << "Received: " << message << std::endl;
             conn->send_text("Echo: " + message);
@@ -37,8 +36,7 @@ int main(int argc, char *argv[]) {
         });
     });
 
-    srv.set_on_error([](std::shared_ptr<connection> conn, const std::string &error) {
-        (void)conn;
+    srv.set_on_error([](std::shared_ptr<connection>, const std::string &error) {
         std::cerr << "Connection error: " << error << std::endl;
     });
 

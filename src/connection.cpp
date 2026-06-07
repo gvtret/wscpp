@@ -1,3 +1,4 @@
+#include <utility>
 #include <wscpp/connection.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/detail/utf8.hpp>
@@ -18,14 +19,14 @@ namespace wscpp {
 class connection::impl {
   public:
     explicit impl(net::io_context &io_context)
-        : socket_(io_context), io_context_(io_context), role_(connection_role::server),
-          is_open_(false), is_closing_(false), expecting_close_(false), reader_running_(false),
-          fragmented_(false), message_opcode_(frame::opcode::TEXT), message_compressed_(false)
+        : socket_(io_context), role_(connection_role::server), fragmented_(false),
+          message_opcode_(frame::opcode::TEXT), message_compressed_(false)
 #if WSCPP_ENABLE_DEFLATE
           ,
           permessage_deflate_(false)
 #endif
-    {
+          ,
+          is_open_(false), is_closing_(false), expecting_close_(false), reader_running_(false) {
     }
 
     ~impl() {
@@ -97,7 +98,6 @@ class connection::impl {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
             socket_.write(close_frame.data(), close_frame.size(), ec);
-            (void)ec;
         }
         is_open_ = false;
         socket_.close();
@@ -150,16 +150,16 @@ class connection::impl {
 #endif
 
     void set_on_open(open_callback cb) {
-        on_open_ = cb;
+        on_open_ = std::move(cb);
     }
     void set_on_message(message_callback cb) {
-        on_message_ = cb;
+        on_message_ = std::move(cb);
     }
     void set_on_close(close_callback cb) {
-        on_close_ = cb;
+        on_close_ = std::move(cb);
     }
     void set_on_error(error_callback cb) {
-        on_error_ = cb;
+        on_error_ = std::move(cb);
     }
 
     bool is_open() const {
@@ -247,7 +247,6 @@ class connection::impl {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
             socket_.write(close_frame.data(), close_frame.size(), ec);
-            (void)ec;
         }
         is_open_ = false;
         socket_.close();
@@ -537,7 +536,6 @@ class connection::impl {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
             socket_.write(close_frame.data(), close_frame.size(), ec);
-            (void)ec;
         }
         is_open_ = false;
         if (on_close_) {
@@ -564,7 +562,6 @@ class connection::impl {
     }
 
     socket_type socket_;
-    net::io_context &io_context_;
     connection_role role_;
 
     uint8_t header_buffer_[2];
@@ -661,19 +658,19 @@ bool connection::permessage_deflate() const {
 #endif
 
 void connection::set_on_open(open_callback cb) {
-    pimpl_->set_on_open(cb);
+    pimpl_->set_on_open(std::move(cb));
 }
 
 void connection::set_on_message(message_callback cb) {
-    pimpl_->set_on_message(cb);
+    pimpl_->set_on_message(std::move(cb));
 }
 
 void connection::set_on_close(close_callback cb) {
-    pimpl_->set_on_close(cb);
+    pimpl_->set_on_close(std::move(cb));
 }
 
 void connection::set_on_error(error_callback cb) {
-    pimpl_->set_on_error(cb);
+    pimpl_->set_on_error(std::move(cb));
 }
 
 bool connection::is_open() const {

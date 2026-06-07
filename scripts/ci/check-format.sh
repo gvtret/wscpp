@@ -23,8 +23,9 @@ fi
 
 failed=0
 for f in "${files[@]}"; do
-    if ! diff -u "$f" <(clang-format "$f") >/dev/null; then
+    if ! clang-format --dry-run --Werror "$f" >/dev/null 2>&1; then
         echo "format check failed: $f" >&2
+        clang-format --dry-run --Werror "$f" 2>&1 | head -20 >&2 || true
         failed=1
     fi
 done

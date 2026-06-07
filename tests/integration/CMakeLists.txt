@@ -25,6 +25,8 @@ if(TARGET asio::asio)
     target_compile_definitions(wscpp_test_integration PRIVATE ASIO_STANDALONE)
 endif()
 
+wscpp_target_strict_warnings(wscpp_test_integration)
+
 include(GoogleTest)
 gtest_discover_tests(wscpp_test_integration PROPERTIES TIMEOUT 30)
 
@@ -40,5 +42,6 @@ if(WSCPP_ENABLE_STRESS_TESTS)
         target_link_libraries(wscpp_test_stress PRIVATE asio::asio)
         target_compile_definitions(wscpp_test_stress PRIVATE ASIO_STANDALONE)
     endif()
+    wscpp_target_strict_warnings(wscpp_test_stress)
     gtest_discover_tests(wscpp_test_stress)
 endif()

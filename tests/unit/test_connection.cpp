@@ -48,7 +48,7 @@ TEST(ConnectionTest, SetCallbacks) {
     conn.set_on_open([&open_called]() { open_called = true; });
 
     std::string received_text;
-    conn.set_on_message([&received_text](const std::vector<uint8_t> &data, frame::opcode op) {
+    conn.set_on_message([&received_text](const std::vector<uint8_t> &data, frame::opcode) {
         received_text = std::string(data.begin(), data.end());
     });
 
@@ -80,8 +80,6 @@ TEST(ConnectionTest, SendText) {
 TEST(ConnectionTest, SendBinary) {
     io_context io_context;
     connection conn(io_context);
-
-    uint8_t data[] = {0x01, 0x02, 0x03, 0x04, 0x05};
 
     // Note: This will fail without a real connection
     EXPECT_FALSE(conn.is_open());
@@ -135,10 +133,7 @@ TEST(ConnectionTest, SSLContext) {
     io_context io_context;
     connection conn(io_context);
 
-#if WSCPP_USE_ASIO
-    asio::ssl::context ssl_context(asio::ssl::context::tlsv12_client);
-    (void)ssl_context;
-#else
+#if !WSCPP_USE_ASIO
     std::shared_ptr<net::openssl_context> ssl_context;
     ASSERT_FALSE(net::openssl_context::make(net::openssl_context::role::client, ssl_context));
 #endif

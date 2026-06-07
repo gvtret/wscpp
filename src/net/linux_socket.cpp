@@ -59,10 +59,7 @@ std::error_code connect_host(const std::string &host, const std::string &port, i
 
 } // namespace
 
-linux_socket::linux_socket(io_context &io_context)
-    : io_context_(io_context), fd_(-1), ssl_(nullptr), ssl_enabled_(false) {
-    (void)io_context_;
-}
+linux_socket::linux_socket(io_context &) : fd_(-1), ssl_(nullptr), ssl_enabled_(false) {}
 
 linux_socket::~linux_socket() {
     close();
@@ -222,7 +219,7 @@ bool linux_socket::is_open() const {
     return fd_ >= 0;
 }
 
-std::error_code linux_socket::enable_ssl(std::shared_ptr<ssl_context> ctx) {
+std::error_code linux_socket::enable_ssl(const std::shared_ptr<ssl_context> &ctx) {
     if (!ctx) {
         return std::error_code();
     }

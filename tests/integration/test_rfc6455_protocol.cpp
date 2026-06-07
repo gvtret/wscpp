@@ -118,7 +118,6 @@ TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
                 b.build(frame::opcode::TEXT, invalid, 2, true, false);
             std::error_code ec;
             conn->socket().write(frame.data(), frame.size(), ec);
-            (void)ec;
         });
     });
     ASSERT_FALSE(srv.listen(port));

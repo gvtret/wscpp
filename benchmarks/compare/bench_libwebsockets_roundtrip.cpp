@@ -46,7 +46,7 @@ static int callback_server(struct lws *wsi, enum lws_callback_reasons reason, vo
 }
 
 static int callback_client(struct lws *wsi, enum lws_callback_reasons reason, void * /*user*/,
-                           void *in, size_t len) {
+                           void *, size_t) {
     bench_state *st = static_cast<bench_state *>(lws_context_user(lws_get_context(wsi)));
 
     switch (reason) {
@@ -78,8 +78,6 @@ static int callback_client(struct lws *wsi, enum lws_callback_reasons reason, vo
     }
 
     case LWS_CALLBACK_CLIENT_RECEIVE: {
-        (void)in;
-        (void)len;
         if (st->in_flight >= 0) {
             const double ms =
                 elapsed_sec(st->send_times[static_cast<std::size_t>(st->in_flight)], clock::now()) *

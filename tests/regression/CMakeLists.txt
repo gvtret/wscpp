@@ -11,6 +11,8 @@ target_link_libraries(wscpp_test_regression
     GTest::gtest_main
 )
 
+wscpp_target_strict_warnings(wscpp_test_regression)
+
 # Add test
 include(GoogleTest)
 gtest_discover_tests(wscpp_test_regression)

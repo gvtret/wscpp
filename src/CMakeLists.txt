@@ -64,6 +64,8 @@ set_target_properties(wscpp PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
+wscpp_target_strict_warnings(wscpp)
+
 install(EXPORT wscppTargets
     FILE wscppTargets.cmake
     NAMESPACE wscpp::

@@ -1,3 +1,4 @@
+#include <utility>
 #include <wscpp/client.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
@@ -90,16 +91,16 @@ class client::impl {
     }
 
     void set_on_open(open_callback cb) {
-        connection_.set_on_open(cb);
+        connection_.set_on_open(std::move(cb));
     }
     void set_on_message(message_callback cb) {
-        connection_.set_on_message(cb);
+        connection_.set_on_message(std::move(cb));
     }
     void set_on_close(close_callback cb) {
-        connection_.set_on_close(cb);
+        connection_.set_on_close(std::move(cb));
     }
     void set_on_error(error_callback cb) {
-        connection_.set_on_error(cb);
+        connection_.set_on_error(std::move(cb));
     }
 
     bool is_open() const {
@@ -118,7 +119,7 @@ class client::impl {
     }
 
     void set_ssl_context(std::shared_ptr<net::ssl_context> ctx) {
-        ssl_context_ = ctx;
+        ssl_context_ = std::move(ctx);
     }
 
 #if WSCPP_ENABLE_DEFLATE
@@ -251,19 +252,19 @@ std::error_code client::send_continuation(const std::string &data, bool fin) {
 }
 
 void client::set_on_open(open_callback cb) {
-    pimpl_->set_on_open(cb);
+    pimpl_->set_on_open(std::move(cb));
 }
 
 void client::set_on_message(message_callback cb) {
-    pimpl_->set_on_message(cb);
+    pimpl_->set_on_message(std::move(cb));
 }
 
 void client::set_on_close(close_callback cb) {
-    pimpl_->set_on_close(cb);
+    pimpl_->set_on_close(std::move(cb));
 }
 
 void client::set_on_error(error_callback cb) {
-    pimpl_->set_on_error(cb);
+    pimpl_->set_on_error(std::move(cb));
 }
 
 bool client::is_open() const {
@@ -283,7 +284,7 @@ void client::stop() {
 }
 
 void client::set_ssl_context(std::shared_ptr<ssl_context> ctx) {
-    pimpl_->set_ssl_context(ctx);
+    pimpl_->set_ssl_context(std::move(ctx));
 }
 
 #if WSCPP_ENABLE_DEFLATE
