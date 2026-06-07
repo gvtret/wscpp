@@ -9,6 +9,8 @@ add_executable(wscpp_test_unit
     test_frame.cpp
     test_handshake.cpp
     test_connection.cpp
+    test_client.cpp
+    test_server.cpp
 )
 
 target_link_libraries(wscpp_test_unit
