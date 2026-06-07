@@ -43,6 +43,6 @@ First stable release: full WebSocket client/server stack, TLS, tests, docs, and 
 
 - Initial WebSocket stack scaffold
 
-[Unreleased]: https://gitverse.ru/project/wscpp/compare/v1.0.0...HEAD
-[1.0.0]: https://gitverse.ru/project/wscpp/compare/v0.1.0...v1.0.0
-[0.1.0]: https://gitverse.ru/project/wscpp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/gvtret/wscpp/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/gvtret/wscpp/compare/v0.1.0...v1.0.0
+[0.1.0]: https://github.com/gvtret/wscpp/releases/tag/v0.1.0

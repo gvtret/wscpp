@@ -2,7 +2,7 @@
 
 Lightweight WebSocket stack for **C++11** with optional TLS (`wss://`).
 
-[![CI](https://gitverse.ru/project/wscpp/badges/main/pipeline.svg)](https://gitverse.ru/project/wscpp)
+[![CI](https://github.com/gvtret/wscpp/actions/workflows/ci.yml/badge.svg)](https://github.com/gvtret/wscpp/actions/workflows/ci.yml)
 
 ## Features
 
@@ -17,7 +17,7 @@ Lightweight WebSocket stack for **C++11** with optional TLS (`wss://`).
 ## Quick build
 
 ```bash
-git clone https://gitverse.ru/project/wscpp.git
+git clone https://github.com/gvtret/wscpp.git
 cd wscpp
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build

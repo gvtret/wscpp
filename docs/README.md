@@ -12,7 +12,7 @@ Lightweight WebSocket client/server library for C++11 with optional TLS (`wss://
 ## Build and install
 
 ```bash
-git clone https://gitverse.ru/project/wscpp.git
+git clone https://github.com/gvtret/wscpp.git
 cd wscpp
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build

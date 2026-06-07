@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cxx: g++
+            cc: gcc
+          - cxx: clang++
+            cc: clang
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libssl-dev doxygen ${{ matrix.cc }}
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DWSCPP_BUILD_TESTS=ON \
+            -DWSCPP_BUILD_EXAMPLES=ON \
+            -DWSCPP_BUILD_DOCS=ON \
+            -DWSCPP_ENABLE_STRESS_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test
+        run: cd build && ctest --output-on-failure
+
+      - name: Build API documentation
+        run: cmake --build build --target docs
+
+      - name: Upload Doxygen artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html-${{ matrix.cc }}
+          path: build/docs/html
