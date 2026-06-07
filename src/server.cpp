@@ -108,11 +108,11 @@ class linux_acceptor {
 class server::impl {
   public:
     impl()
-        : io_context_(),
 #if WSCPP_USE_ASIO
-          acceptor_(io_context_),
+        : acceptor_(io_context_), is_running_(false), ssl_enabled_(false) {
+#else
+        : is_running_(false), ssl_enabled_(false) {
 #endif
-          is_running_(false), ssl_enabled_(false) {
 #if WSCPP_USE_ASIO
         ssl_context_ = std::make_shared<net::ssl_context>(asio::ssl::context::tlsv12_server);
         ssl_context_->set_options(asio::ssl::context::default_workarounds |

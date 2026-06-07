@@ -14,7 +14,7 @@ namespace wscpp {
 class client::impl {
   public:
     impl()
-        : io_context_(), connection_(io_context_), is_open_(false), is_closing_(false)
+        : connection_(io_context_), is_open_(false), is_closing_(false)
 #if WSCPP_ENABLE_DEFLATE
           ,
           request_deflate_(false)
