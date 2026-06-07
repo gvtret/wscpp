@@ -76,13 +76,25 @@
 
 ## Benchmark results
 
-_TBD — see `benchmarks/` after F1/F2 implementation._
+Measured on Linux/WSL2, Release build, GCC 15, local echo (100 samples, 64 KiB throughput test).
 
-| Library | Echo latency p50 | Throughput MB/s | Static lib size |
-|---------|------------------|-----------------|-----------------|
-| wscpp | — | — | — |
-| websocketpp | — | — | — |
-| Beast | — | — | — |
+| Library | Echo p50 | Echo p99 | 64 KiB throughput | `bench_*` binary |
+|---------|----------|----------|---------------------|------------------|
+| **wscpp** | 0.25 ms | 0.44 ms | 81 MB/s | 371 KB |
+| **websocketpp** 0.8.2 | 0.38 ms | 0.85 ms | — | 704 KB |
+
+**wscpp micro-benchmarks** (1 MiB payload, single-threaded):
+
+| Scenario | Throughput |
+|----------|------------|
+| Frame build | ~2.2 GB/s |
+| Frame parse | ~21 GB/s (hot cache, same buffer) |
+| Mask/unmask XOR | ~2.1 GB/s |
+| Masked build+parse | ~870 MB/s |
+
+Run locally: `cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON && cmake --build build --target benchmarks bench_websocketpp_roundtrip`
+
+Libraries requiring manual install (Beast, IXWebSocket, libwebsockets) — see `benchmarks/compare/README.md`.
 
 ## Recommendations
 
