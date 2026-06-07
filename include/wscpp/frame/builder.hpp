@@ -29,6 +29,15 @@ class builder {
                                const std::array<uint8_t, 4> &masking_key = {{0, 0, 0, 0}},
                                bool rsv1 = false);
 
+    /** @brief Build frame into @p out (reuses @p out capacity). */
+    void build_into(std::vector<uint8_t> &out, opcode op, const uint8_t *data, size_t size,
+                    bool fin = true, bool mask = false,
+                    const std::array<uint8_t, 4> &masking_key = {{0, 0, 0, 0}}, bool rsv1 = false);
+
+    /** @brief Build close frame into @p out (reuses @p out capacity). */
+    void build_close_into(std::vector<uint8_t> &out, uint16_t status_code,
+                          const std::string &reason = "", bool mask = false);
+
     /** @brief Build text (UTF-8) frame. */
     std::vector<uint8_t> build_text(const std::string &text, bool fin = true, bool mask = false);
 

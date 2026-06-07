@@ -8,9 +8,9 @@ Comparative catalog and benchmark results for **wscpp** (v1.1.0). Numbers below 
 |---|---------------|--------------|-------------|-------------|---------------|-------|-----|--------------|
 | **Role** | client + server | client + server | client + server | client + server | client + server | client + server | client + server | client only |
 | **`C++11`, no Boost** | yes | yes (needs ASIO) | yes (needs ASIO) | yes | C API | no (Boost) | yes (ASIO) | yes |
-| **Echo p50 (localhost)** | 0.25 ms | 0.28 ms | 0.31 ms | 0.28 ms | 0.26 ms | 0.25 ms | 0.28 ms | — [b] |
-| **Echo / connect p99** | 0.46 ms | 0.51 ms | 0.59 ms | 0.68 ms | 0.40 ms | 0.32 ms | 0.46 ms | 1.88 ms connect |
-| **64 KiB throughput** | 81 MB/s | 76 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
+| **Echo p50 (localhost)** | 0.25 ms | 0.25 ms | 0.31 ms | 0.28 ms | 0.26 ms | 0.25 ms | 0.28 ms | — [b] |
+| **Echo / connect p99** | 0.36 ms | 0.32 ms | 0.59 ms | 0.68 ms | 0.40 ms | 0.32 ms | 0.46 ms | 1.88 ms connect |
+| **64 KiB throughput** | 92 MB/s | 82 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
 | **Bench binary size** | 281 KB | 383 KB | 687 KB | 473 KB | 126 KB* | 668 KB | 675 KB | 370 KB |
 
 **Executive summary footnotes:** [a] compare target measures echo only (no 64 KiB loop in `bench_*_roundtrip`). [b] client-only — harness runs connect latency, not echo (`bench_easywsclient_connect`). Full tag list: [Table legend](#table-legend).
@@ -152,17 +152,17 @@ Measured with the same harness; only CMake flag `WSCPP_USE_ASIO` differs.
 
 | Transport | Echo p50 | Echo p99 | 64 KiB throughput | Binary size |
 |-----------|----------|----------|-------------------|-------------|
-| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.25 ms | 0.46 ms | 81 MB/s | 281 KB |
-| **ASIO** (`WSCPP_USE_ASIO=ON`) | 0.28 ms | 0.51 ms | 76 MB/s | 383 KB |
+| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.25 ms | 0.36 ms | 92 MB/s | 281 KB |
+| **ASIO** (`WSCPP_USE_ASIO=ON`) | 0.25 ms | 0.32 ms | 82 MB/s | 383 KB |
 
-Micro-benchmarks (`bench_frame_parse`, `bench_masking`) are transport-agnostic (frame layer only). Masking uses word-at-a-time XOR (`detail/mask.hpp`, v1.1.0+).
+Micro-benchmarks (`bench_frame_parse`, `bench_masking`) are transport-agnostic (frame layer only). Masking uses 64/32/8/4-byte XOR unrolling (`detail/mask.hpp`); connection reuses an outbound frame buffer.
 
 | Scenario | Throughput |
 |----------|------------|
-| Frame build | ~10 GB/s |
-| Frame parse | ~18 GB/s |
-| Mask/unmask XOR | ~50 GB/s |
-| Masked build+parse | ~2.2 GB/s |
+| Frame build | ~15 GB/s |
+| Frame parse | ~22 GB/s |
+| Mask/unmask XOR | ~70 GB/s |
+| Masked build+parse | ~4.6 GB/s |
 
 ### Third-party compare (automated harness, ASIO build tree)
 
@@ -224,3 +224,4 @@ cmake --build build-asio --target run_benchmarks
 | 2026-06-07 | UTF-8 §8.1; v1.0.2 baseline |
 | 2026-06-07 | Dual transport benches; `error_code` API; `run_benchmarks_both.sh` |
 | 2026-06-07 | Frame perf: word-at-a-time masking, zero-copy build; updated micro + echo numbers |
+| 2026-06-07 | Frame perf: uint64 mask unroll, reused outbound buffer, UTF-8 ASCII fast path |

@@ -6,8 +6,34 @@
 namespace wscpp {
 namespace frame {
 
+namespace {
+
+void append_payload_length(std::vector<uint8_t> &frame, uint8_t &second_byte, size_t size) {
+    if (size <= 125) {
+        second_byte |= static_cast<uint8_t>(size);
+        frame.push_back(second_byte);
+    } else if (size <= 65535) {
+        second_byte |= 126;
+        frame.push_back(second_byte);
+        frame.push_back(static_cast<uint8_t>((size >> 8) & 0xFF));
+        frame.push_back(static_cast<uint8_t>(size & 0xFF));
+    } else {
+        second_byte |= 127;
+        frame.push_back(second_byte);
+        frame.push_back(static_cast<uint8_t>((size >> 56) & 0xFF));
+        frame.push_back(static_cast<uint8_t>((size >> 48) & 0xFF));
+        frame.push_back(static_cast<uint8_t>((size >> 40) & 0xFF));
+        frame.push_back(static_cast<uint8_t>((size >> 32) & 0xFF));
+        frame.push_back(static_cast<uint8_t>((size >> 24) & 0xFF));
+        frame.push_back(static_cast<uint8_t>((size >> 16) & 0xFF));
+        frame.push_back(static_cast<uint8_t>((size >> 8) & 0xFF));
+        frame.push_back(static_cast<uint8_t>(size & 0xFF));
+    }
+}
+
+} // namespace
+
 builder::builder() {
-    // Initialize with default masking key
     masking_key_ = {{0x00, 0x00, 0x00, 0x00}};
 }
 
@@ -26,14 +52,12 @@ void builder::mask_data(uint8_t *data, size_t size, const std::array<uint8_t, 4>
     detail::apply_mask(data, size, key.data());
 }
 
-std::vector<uint8_t> builder::build(opcode op, const uint8_t *data, size_t size, bool fin,
-                                    bool mask, const std::array<uint8_t, 4> &masking_key,
-                                    bool rsv1) {
-    std::vector<uint8_t> frame;
+void builder::build_into(std::vector<uint8_t> &out, opcode op, const uint8_t *data, size_t size,
+                         bool fin, bool mask, const std::array<uint8_t, 4> &masking_key,
+                         bool rsv1) {
+    out.clear();
+    out.reserve(2 + 16 + (mask ? 4 : 0) + size);
 
-    frame.reserve(2 + 16 + (mask ? 4 : 0) + size);
-
-    // First byte: FIN + RSV + Opcode
     uint8_t first_byte = 0;
     if (fin) {
         first_byte |= 0x80;
@@ -42,45 +66,70 @@ std::vector<uint8_t> builder::build(opcode op, const uint8_t *data, size_t size,
         first_byte |= 0x40;
     }
     first_byte |= static_cast<uint8_t>(op);
-    frame.push_back(first_byte);
+    out.push_back(first_byte);
 
-    // Second byte: MASK + Payload length
     uint8_t second_byte = 0;
     if (mask) {
         second_byte |= 0x80;
     }
-
-    if (size <= 125) {
-        second_byte |= static_cast<uint8_t>(size);
-        frame.push_back(second_byte);
-    } else if (size <= 65535) {
-        second_byte |= 126;
-        frame.push_back(second_byte);
-        // 16-bit extended payload length
-        frame.push_back(static_cast<uint8_t>((size >> 8) & 0xFF));
-        frame.push_back(static_cast<uint8_t>(size & 0xFF));
-    } else {
-        second_byte |= 127;
-        frame.push_back(second_byte);
-        // 64-bit extended payload length (big-endian)
-        for (int i = 7; i >= 0; --i) {
-            frame.push_back(static_cast<uint8_t>((size >> (i * 8)) & 0xFF));
-        }
-    }
+    append_payload_length(out, second_byte, size);
 
     const std::array<uint8_t, 4> &key = mask ? masking_key : masking_key_;
     if (mask) {
-        frame.insert(frame.end(), key.begin(), key.end());
+        out.insert(out.end(), key.begin(), key.end());
     }
 
-    const std::size_t payload_offset = frame.size();
-    frame.resize(payload_offset + size);
-    std::memcpy(frame.data() + payload_offset, data, size);
+    const std::size_t payload_offset = out.size();
+    out.resize(payload_offset + size);
+    std::memcpy(out.data() + payload_offset, data, size);
     if (mask) {
-        mask_data(frame.data() + payload_offset, size, key);
+        mask_data(out.data() + payload_offset, size, key);
+    }
+}
+
+std::vector<uint8_t> builder::build(opcode op, const uint8_t *data, size_t size, bool fin,
+                                    bool mask, const std::array<uint8_t, 4> &masking_key,
+                                    bool rsv1) {
+    std::vector<uint8_t> frame;
+    build_into(frame, op, data, size, fin, mask, masking_key, rsv1);
+    return frame;
+}
+
+void builder::build_close_into(std::vector<uint8_t> &out, uint16_t status_code,
+                               const std::string &reason, bool mask) {
+    uint8_t payload[2];
+    payload[0] = static_cast<uint8_t>((status_code >> 8) & 0xFF);
+    payload[1] = static_cast<uint8_t>(status_code & 0xFF);
+
+    if (reason.empty()) {
+        const std::array<uint8_t, 4> key = mask ? generate_masking_key() : masking_key_;
+        build_into(out, opcode::CLOSE, payload, 2, true, mask, key);
+        return;
     }
 
-    return frame;
+    out.clear();
+    out.reserve(2 + 16 + (mask ? 4 : 0) + 2 + reason.size());
+
+    uint8_t first_byte = 0x80 | static_cast<uint8_t>(opcode::CLOSE);
+    out.push_back(first_byte);
+
+    const size_t payload_size = 2 + reason.size();
+    uint8_t second_byte = mask ? 0x80 : 0;
+    append_payload_length(out, second_byte, payload_size);
+
+    const std::array<uint8_t, 4> key = mask ? generate_masking_key() : masking_key_;
+    if (mask) {
+        out.insert(out.end(), key.begin(), key.end());
+    }
+
+    const std::size_t payload_offset = out.size();
+    out.resize(payload_offset + payload_size);
+    out[payload_offset] = payload[0];
+    out[payload_offset + 1] = payload[1];
+    std::memcpy(out.data() + payload_offset + 2, reason.data(), reason.size());
+    if (mask) {
+        mask_data(out.data() + payload_offset, payload_size, key);
+    }
 }
 
 std::vector<uint8_t> builder::build_text(const std::string &text, bool fin, bool mask) {
@@ -94,16 +143,9 @@ std::vector<uint8_t> builder::build_binary(const uint8_t *data, size_t size, boo
 
 std::vector<uint8_t> builder::build_close(uint16_t status_code, const std::string &reason,
                                           bool mask) {
-    // Close frame payload: 2-byte status code + optional reason
-    std::vector<uint8_t> payload;
-    payload.push_back(static_cast<uint8_t>((status_code >> 8) & 0xFF));
-    payload.push_back(static_cast<uint8_t>(status_code & 0xFF));
-
-    if (!reason.empty()) {
-        payload.insert(payload.end(), reason.begin(), reason.end());
-    }
-
-    return build(opcode::CLOSE, payload.data(), payload.size(), true, mask, generate_masking_key());
+    std::vector<uint8_t> frame;
+    build_close_into(frame, status_code, reason, mask);
+    return frame;
 }
 
 std::vector<uint8_t> builder::build_ping(const uint8_t *data, size_t size, bool mask) {

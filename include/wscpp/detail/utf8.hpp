@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 namespace wscpp {
@@ -10,6 +11,14 @@ namespace detail {
 
 inline bool is_valid_utf8(const uint8_t *data, std::size_t len) {
     std::size_t i = 0;
+    while (i + 8 <= len) {
+        std::uint64_t chunk = 0;
+        std::memcpy(&chunk, data + i, 8);
+        if ((chunk & 0x8080808080808080ULL) != 0) {
+            break;
+        }
+        i += 8;
+    }
     while (i < len) {
         const uint8_t c = data[i];
         if (c <= 0x7F) {

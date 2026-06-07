@@ -92,13 +92,11 @@ class connection::impl {
             status_code = 1000;
         }
         is_closing_ = true;
-        frame::builder b;
-        const std::vector<uint8_t> close_frame =
-            b.build_close(status_code, reason, outbound_mask());
+        frame_builder_.build_close_into(outbound_frame_, status_code, reason, outbound_mask());
         {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
-            socket_.write(close_frame.data(), close_frame.size(), ec);
+            socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
         }
         is_open_ = false;
         socket_.close();
@@ -125,14 +123,17 @@ class connection::impl {
         if (!is_open_) {
             return make_error_code(errc::not_open);
         }
-        frame::builder b;
-        const std::vector<uint8_t> frame = b.build_ping(data, size, outbound_mask());
+        const bool mask = outbound_mask();
+        const std::array<uint8_t, 4> mask_key =
+            mask ? frame_builder_.generate_masking_key() : std::array<uint8_t, 4>{{0, 0, 0, 0}};
+        frame_builder_.build_into(outbound_frame_, frame::opcode::PING, data, size, true, mask,
+                                  mask_key);
         std::lock_guard<std::mutex> lock(write_mutex_);
         if (!is_open_ || is_closing_) {
             return make_error_code(errc::not_open);
         }
         std::error_code ec;
-        socket_.write(frame.data(), frame.size(), ec);
+        socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
         return ec;
     }
 
@@ -202,19 +203,17 @@ class connection::impl {
         }
 #endif
 
-        frame::builder b;
-        std::array<uint8_t, 4> mask_key = {{0, 0, 0, 0}};
-        if (outbound_mask()) {
-            mask_key = b.generate_masking_key();
-        }
-        const std::vector<uint8_t> frame =
-            b.build(op, send_data, send_size, fin, outbound_mask(), mask_key, rsv1);
+        const bool mask = outbound_mask();
+        const std::array<uint8_t, 4> mask_key =
+            mask ? frame_builder_.generate_masking_key() : std::array<uint8_t, 4>{{0, 0, 0, 0}};
+        frame_builder_.build_into(outbound_frame_, op, send_data, send_size, fin, mask, mask_key,
+                                  rsv1);
         std::lock_guard<std::mutex> lock(write_mutex_);
         if (!is_open_ || is_closing_) {
             return make_error_code(errc::not_open);
         }
         std::error_code ec;
-        socket_.write(frame.data(), frame.size(), ec);
+        socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
         return ec;
     }
 
@@ -243,11 +242,10 @@ class connection::impl {
         }
         if (is_open_ && !is_closing_) {
             is_closing_ = true;
-            frame::builder b;
-            const std::vector<uint8_t> close_frame = b.build_close(code, reason, outbound_mask());
+            frame_builder_.build_close_into(outbound_frame_, code, reason, outbound_mask());
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
-            socket_.write(close_frame.data(), close_frame.size(), ec);
+            socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
         }
         is_open_ = false;
         socket_.close();
@@ -530,12 +528,11 @@ class connection::impl {
             }
             reason = std::string(payload_buffer_.begin() + 2, payload_buffer_.end());
         }
-        frame::builder b;
-        const std::vector<uint8_t> close_frame = b.build_close(status_code, "", outbound_mask());
+        frame_builder_.build_close_into(outbound_frame_, status_code, "", outbound_mask());
         {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
-            socket_.write(close_frame.data(), close_frame.size(), ec);
+            socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
         }
         is_open_ = false;
         if (on_close_) {
@@ -547,19 +544,24 @@ class connection::impl {
         if (is_closing_ || !is_open_) {
             return;
         }
-        frame::builder b;
-        const std::vector<uint8_t> pong_frame =
-            b.build_pong(payload_buffer_.data(), payload_buffer_.size(), outbound_mask());
+        const bool mask = outbound_mask();
+        const std::array<uint8_t, 4> mask_key =
+            mask ? frame_builder_.generate_masking_key() : std::array<uint8_t, 4>{{0, 0, 0, 0}};
+        frame_builder_.build_into(outbound_frame_, frame::opcode::PONG, payload_buffer_.data(),
+                                  payload_buffer_.size(), true, mask, mask_key);
         std::lock_guard<std::mutex> lock(write_mutex_);
         if (is_closing_ || !is_open_) {
             return;
         }
         std::error_code ec;
-        socket_.write(pong_frame.data(), pong_frame.size(), ec);
+        socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
         if (ec && on_error_) {
             on_error_(ec.message());
         }
     }
+
+    frame::builder frame_builder_;
+    std::vector<uint8_t> outbound_frame_;
 
     socket_type socket_;
     connection_role role_;
