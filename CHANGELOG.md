@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-07
+
+### Added
+- UTF-8 validation for TEXT frames (RFC 6455 §8.1); invalid payload closes with code 1007
+- `detail::is_valid_utf8()` helper and unit tests
+- Integration test `InvalidUtf8TextClosesWith1007`
+
+### Fixed
+- `fail_with_close()` now invokes `on_close` callback (local protocol errors)
+
 ## [1.0.1] - 2026-06-07
 
 ### Added

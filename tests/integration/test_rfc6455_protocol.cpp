@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <wscpp/server.hpp>
 #include <wscpp/client.hpp>
+#include <wscpp/frame/builder.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <atomic>
@@ -102,4 +103,43 @@ TEST(Rfc6455Connection, ServerPingGetsPong) {
     ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+}
+
+TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
+    const uint16_t port = pick_free_port();
+    std::atomic<bool> done(false);
+    uint16_t close_code = 0;
+
+    server srv;
+    srv.set_on_connection([&](std::shared_ptr<connection> conn) {
+        conn->set_on_open([conn]() {
+            frame::builder b;
+            const uint8_t invalid[] = {0xC0, 0x80};
+            const std::vector<uint8_t> frame =
+                b.build(frame::opcode::TEXT, invalid, 2, true, false);
+            conn->socket().write(frame.data(), frame.size());
+        });
+    });
+    srv.listen(port);
+    srv.start();
+
+    std::thread t([&]() {
+        client cli;
+        cli.set_on_close([&](uint16_t code, const std::string&) {
+            close_code = code;
+            done = true;
+        });
+        cli.set_on_error([&](const std::string&) { done = true; });
+        try {
+            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+            wait_for(done, 5000);
+        } catch (...) {
+            done = true;
+        }
+    });
+
+    ASSERT_TRUE(wait_for(done, 5000));
+    t.join();
+    srv.stop();
+    EXPECT_EQ(close_code, 1007u);
 }

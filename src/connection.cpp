@@ -1,5 +1,6 @@
 #include <wscpp/connection.hpp>
 #include <wscpp/detail/make_unique.hpp>
+#include <wscpp/detail/utf8.hpp>
 #include <wscpp/frame/parser.hpp>
 #include <wscpp/frame/builder.hpp>
 #include <stdexcept>
@@ -157,7 +158,7 @@ private:
         return code <= 4999;
     }
 
-    void fail_protocol(const std::string& reason) {
+    void fail_with_close(uint16_t code, const std::string& reason) {
         if (on_error_) {
             on_error_(reason);
         }
@@ -165,7 +166,7 @@ private:
             is_closing_ = true;
             frame::builder b;
             const std::vector<uint8_t> close_frame =
-                b.build_close(1002, reason, outbound_mask());
+                b.build_close(code, reason, outbound_mask());
             try {
                 socket_.write(close_frame.data(), close_frame.size());
             } catch (...) {
@@ -176,6 +177,13 @@ private:
             socket_.close();
         } catch (...) {
         }
+        if (on_close_) {
+            on_close_(code, reason);
+        }
+    }
+
+    void fail_protocol(const std::string& reason) {
+        fail_with_close(1002, reason);
     }
 
     bool validate_frame_header() {
@@ -200,6 +208,10 @@ private:
     }
 
     void deliver_message(const std::vector<uint8_t>& payload, frame::opcode op) {
+        if (op == frame::opcode::TEXT && !detail::is_valid_utf8(payload)) {
+            fail_with_close(1007, "Invalid UTF-8 in text frame");
+            return;
+        }
         if (on_message_) {
             on_message_(payload, op);
         }

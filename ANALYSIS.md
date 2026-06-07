@@ -14,7 +14,7 @@ Gate checklist (non-exhaustive):
 
 | RFC | Scope | Status for benchmarking |
 |-----|--------|-------------------------|
-| [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) | Framing (§5), handshake (§4), close (§7), ping/pong (§5.5), fragmentation | **Implemented** — masking, reassembly, control frames; UTF-8 validation optional |
+| [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) | Framing (§5), handshake (§4), close (§7), ping/pong (§5.5), fragmentation, UTF-8 (§8.1) | **Implemented** |
 | [RFC 2818](https://www.rfc-editor.org/rfc/rfc2818) | `wss://` TLS + server identity (SNI) | **Implemented** — basic WSS path + SNI |
 | [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692) | permessage-deflate | Post-v1.0; exclude from v1.0 baseline |
 

@@ -23,6 +23,12 @@
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
 **Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
 
+## 2026-06-07 — UTF-8 validation (RFC 6455 §8.1)
+
+**Done:** TEXT frame UTF-8 validation via `detail::is_valid_utf8()`; close 1007 on invalid payload; `fail_with_close` invokes `on_close`; unit tests (7) + integration test. Release v1.0.2. 90/90 tests pass.
+**State:** `main`, VERSION 1.0.2, tag `v1.0.2`.
+**Next:** Optional F2 expansion (Beast/IXWebSocket); RFC 7692 permessage-deflate post-v1.0.
+
 ## 2026-06-07 — Benchmark re-run post-RFC gate
 
 **Done:** Re-ran all benchmarks; updated ANALYSIS.md with post-RFC numbers; release v1.0.1. 82/82 tests pass.
