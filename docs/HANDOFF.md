@@ -9,3 +9,10 @@
 **State:** `main`, v0.1.0, examples verified ws+wss locally.
 **Next:** F1 benchmarks harness; G2 repo templates; G4 release v1.0.0.
 **Notes:** Server WSS path: adopt socket → TLS handshake → WS upgrade. Stress tests off in CI (`WSCPP_ENABLE_STRESS_TESTS=OFF`).
+
+## 2026-06-07 — F1–G4: benchmarks, templates, v1.0.0
+
+**Done:** F1 micro-benchmarks (frame/mask/roundtrip); F2 websocketpp compare; F3 ANALYSIS.md with measured results; G2 issue/PR templates + CODE_OF_CONDUCT; G4 release v1.0.0. 79/79 tests, docs target OK.
+**State:** `main`, VERSION 1.0.0, tag `v1.0.0`.
+**Next:** Optional F2 expansion (Beast/IXWebSocket); post-v1.0 features (permessage-deflate).
+**Notes:** Roundtrip bench must not call `client.run()` — io_context is idle; use wait loop like integration tests.

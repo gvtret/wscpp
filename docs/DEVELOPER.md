@@ -65,6 +65,8 @@ Targets:
 | `wscpp_test_integration` | Client/server integration |
 | `wscpp_test_regression` | RFC 6455 frozen vectors |
 | `wscpp_test_stress` | Stress tests (requires `-DWSCPP_ENABLE_STRESS_TESTS=ON`) |
+| `bench_frame_parse`, `bench_masking`, `bench_roundtrip` | Micro-benchmarks (`-DWSCPP_BUILD_BENCHMARKS=ON`) |
+| `bench_websocketpp_roundtrip` | Comparative latency vs websocketpp |
 | `docs` | Doxygen HTML |
 | `wscpp_example_*` | Example binaries |
 
