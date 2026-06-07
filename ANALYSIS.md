@@ -90,23 +90,25 @@ The harness in `benchmarks/` is kept for regression and iteration, but **ANALYSI
 
 ## Benchmark results
 
-> **Preliminary (v1.0.0).** Measured before full RFC coverage review. Do not use for release positioning until re-run per [When to benchmark](#when-to-benchmark).
+> **Post-RFC gate (2026-06-07).** Measured after RFC 6455 masking, fragmentation, ping/pong, and protocol validation. RFC 7692 (deflate) excluded.
 
-Measured on Linux/WSL2, Release build, GCC 15, local echo (100 samples, 64 KiB throughput test).
+Environment: Linux/WSL2, Release build, GCC 15, local echo (100 samples, 64 KiB throughput test).
 
-| Library | Echo p50 | Echo p99 | 64 KiB throughput | `bench_*` binary |
-|---------|----------|----------|---------------------|------------------|
-| **wscpp** | 0.25 ms | 0.44 ms | 81 MB/s | 371 KB |
-| **websocketpp** 0.8.2 | 0.38 ms | 0.85 ms | — | 704 KB |
+| Library | Echo p50 | Echo p99 | 64 KiB throughput | Binary size |
+|---------|----------|----------|-------------------|-------------|
+| **wscpp** | 0.28 ms | 0.42 ms | 71 MB/s | 375 KB |
+| **websocketpp** 0.8.2 | 0.30 ms | 0.43 ms | — | 708 KB |
+
+Client masking adds minimal overhead vs pre-RFC baseline; wscpp and websocketpp are now within the same latency band on localhost echo.
 
 **wscpp micro-benchmarks** (1 MiB payload, single-threaded):
 
 | Scenario | Throughput |
 |----------|------------|
-| Frame build | ~2.2 GB/s |
-| Frame parse | ~21 GB/s (hot cache, same buffer) |
+| Frame build | ~2.1 GB/s |
+| Frame parse | ~23 GB/s (hot cache, same buffer) |
 | Mask/unmask XOR | ~2.1 GB/s |
-| Masked build+parse | ~870 MB/s |
+| Masked build+parse | ~860 MB/s |
 
 Run locally: `cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON && cmake --build build --target benchmarks bench_websocketpp_roundtrip`
 
@@ -116,7 +118,8 @@ Libraries requiring manual install (Beast, IXWebSocket, libwebsockets) — see `
 
 | Use case | Suggestion |
 |----------|------------|
-| Embedded / minimal deps | wscpp, easywsclient |
+| Embedded / minimal deps | wscpp (~375 KB echo binary), easywsclient |
 | Maximum features + ecosystem | websocketpp, Boost.Beast |
+| Lowest localhost echo latency (this setup) | wscpp, websocketpp (comparable) |
 | Mobile / cross-platform SDK | IXWebSocket |
 | C codebase | libwebsockets |

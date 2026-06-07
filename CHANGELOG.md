@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-07
+
+### Added
+- RFC 6455 client masking, fragmented message reassembly, auto pong, protocol validation
+- `send_continuation`, `send_ping`, `connection_role` API
+- Integration tests for fragmented echo and server ping
+
+### Changed
+- `ANALYSIS.md` benchmark results refreshed after RFC gate (post-masking baseline)
+
 ## [1.0.0] - 2026-06-07
 
 First stable release: full WebSocket client/server stack, TLS, tests, docs, and benchmarks.
@@ -43,6 +53,7 @@ First stable release: full WebSocket client/server stack, TLS, tests, docs, and 
 
 - Initial WebSocket stack scaffold
 
-[Unreleased]: https://github.com/gvtret/wscpp/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/gvtret/wscpp/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/gvtret/wscpp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gvtret/wscpp/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/gvtret/wscpp/releases/tag/v0.1.0

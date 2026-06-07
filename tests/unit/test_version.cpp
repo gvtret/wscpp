@@ -34,8 +34,8 @@ TEST(VersionTest, VersionComponents) {
     // Basic validation
     EXPECT_TRUE(major >= 0 && minor >= 0 && patch >= 0);
     
-    // Synchronized with VERSION file (1.0.0)
+    // Synchronized with VERSION file (1.0.1)
     EXPECT_EQ(major, 1);
     EXPECT_EQ(minor, 0);
-    EXPECT_EQ(patch, 0);
+    EXPECT_EQ(patch, 1);
 }

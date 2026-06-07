@@ -21,4 +21,10 @@
 
 **Done:** Client outbound masking; server/client inbound mask validation; RSV/opcode checks; fragmented message reassembly; auto pong; close code validation; `send_continuation`/`send_ping`; integration tests (fragmented echo, ping). 82/82 tests pass.
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
-**Next:** Re-run `benchmarks/` and refresh ANALYSIS.md tables; optional UTF-8 text validation.
+**Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
+
+## 2026-06-07 — Benchmark re-run post-RFC gate
+
+**Done:** Re-ran all benchmarks; updated ANALYSIS.md with post-RFC numbers; release v1.0.1. 82/82 tests pass.
+**State:** `main`, VERSION 1.0.1, tag `v1.0.1`.
+**Next:** UTF-8 validation; optional comparative benchmarks for external libs.

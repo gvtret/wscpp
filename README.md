@@ -12,7 +12,7 @@ Lightweight WebSocket stack for **C++11** with optional TLS (`wss://`).
 - RFC 6455 frame layer with regression test vectors
 - CMake build, SemVer versioning, Doxygen API docs
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 
 ## Quick build
 
