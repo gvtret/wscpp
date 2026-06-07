@@ -71,9 +71,9 @@ TEST(TlsIntegration, WssEchoWithServerCertificate) {
         }
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+    ASSERT_TRUE(done.load());
     EXPECT_EQ(received, "wss-ping");
 }
 
@@ -122,9 +122,9 @@ TEST(TlsIntegration, WssEchoWithCaVerification) {
         }
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+    ASSERT_TRUE(done.load());
     EXPECT_EQ(received, "verified");
 }
 
@@ -173,8 +173,8 @@ TEST(TlsIntegration, WssMutualTlsEcho) {
         }
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+    ASSERT_TRUE(done.load());
     EXPECT_EQ(received, "mtls");
 }

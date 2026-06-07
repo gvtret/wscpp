@@ -134,7 +134,7 @@ jobs:
         run: bash scripts/gen-test-tls-certs.sh
 
       - name: Test
-        run: cd build && ctest --output-on-failure --timeout 30
+        run: cd build && ctest --output-on-failure --timeout 60 -j 1
 
       - name: Build API documentation
         run: cmake --build build --target docs

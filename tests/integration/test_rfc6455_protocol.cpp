@@ -68,9 +68,9 @@ TEST(Rfc6455Connection, FragmentedTextEcho) {
         }
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+    ASSERT_TRUE(done.load());
     EXPECT_EQ(received, "Hello World");
 }
 
@@ -99,9 +99,9 @@ TEST(Rfc6455Connection, ServerPingGetsPong) {
         done = true;
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
-    srv.stop();
     t.join();
+    srv.stop();
+    ASSERT_TRUE(done.load());
 }
 
 TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
@@ -138,9 +138,9 @@ TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
         }
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+    ASSERT_TRUE(done.load());
     EXPECT_EQ(close_code, 1007u);
 }
 
@@ -181,9 +181,9 @@ TEST(Rfc6455Connection, DeflateTextEcho) {
         }
     });
 
-    ASSERT_TRUE(wait_for(done, 5000));
     t.join();
     srv.stop();
+    ASSERT_TRUE(done.load());
     EXPECT_EQ(received, "Hello compressed");
 }
 

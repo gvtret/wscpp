@@ -61,9 +61,9 @@ TEST(ClientServerIntegration, EchoTextMessage) {
         wait_for(client_done, 5000);
     });
 
-    ASSERT_TRUE(wait_for(client_done, 5000)) << "integration test timed out";
     client_thread.join();
     srv.stop();
+    ASSERT_TRUE(client_done.load()) << "integration test timed out";
 
     EXPECT_EQ(received, "ping");
 }
