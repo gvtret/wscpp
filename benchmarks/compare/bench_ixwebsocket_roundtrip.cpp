@@ -1,11 +1,9 @@
 // bench_ixwebsocket_roundtrip.cpp — echo latency comparison (IXWebSocket 11.4.x)
 
-#include "../bench_common.hpp"
+#include "../bench_util.hpp"
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXWebSocketServer.h>
-#include <asio/io_context.hpp>
-#include <asio/ip/tcp.hpp>
 #include <atomic>
 #include <cstdio>
 #include <string>
@@ -13,14 +11,6 @@
 #include <vector>
 
 using namespace wscpp::bench;
-
-namespace {
-
-uint16_t pick_free_port() {
-    asio::io_context io;
-    asio::ip::tcp::acceptor acc(io, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
-    return acc.local_endpoint().port();
-}
 
 bool start_echo_server(ix::WebSocketServer& server) {
     server.setOnClientMessageCallback(
@@ -34,9 +24,8 @@ bool start_echo_server(ix::WebSocketServer& server) {
     return server.listenAndStart();
 }
 
-} // namespace
-
 int main() {
+    print_compare_banner("bench_ixwebsocket_roundtrip");
     ix::initNetSystem();
 
     const int samples = 100;

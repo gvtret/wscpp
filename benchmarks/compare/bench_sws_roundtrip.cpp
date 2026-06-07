@@ -1,6 +1,6 @@
 // bench_sws_roundtrip.cpp — echo latency comparison (Simple-WebSocket-Server)
 
-#include "../bench_common.hpp"
+#include "../bench_util.hpp"
 #include "client_ws.hpp"
 #include "server_ws.hpp"
 #include <atomic>
@@ -35,6 +35,7 @@ void configure_echo_server(WsServer& server) {
 } // namespace
 
 int main() {
+    print_compare_banner("bench_sws_roundtrip");
     const int samples = 100;
 
     WsServer server;

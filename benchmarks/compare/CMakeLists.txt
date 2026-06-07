@@ -1,6 +1,16 @@
-include(FetchContent)
-
+# Shared compare targets list for parent benchmarks/CMakeLists.txt
 set(WSCPP_COMPARE_TARGETS)
+
+function(wscpp_bench_harness_deps target)
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    target_link_libraries(${target} PRIVATE Threads::Threads)
+    if(TARGET asio::asio)
+        target_link_libraries(${target} PRIVATE asio::asio)
+        target_compile_definitions(${target} PRIVATE ASIO_STANDALONE WSCPP_BENCH_HAVE_ASIO)
+    endif()
+endfunction()
+
+include(FetchContent)
 
 # --- websocketpp 0.8.2 ---
 FetchContent_Declare(
@@ -11,13 +21,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(websocketpp)
 
 add_executable(bench_websocketpp_roundtrip bench_websocketpp_roundtrip.cpp)
-target_include_directories(bench_websocketpp_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_compile_definitions(bench_websocketpp_roundtrip PRIVATE ASIO_STANDALONE)
+wscpp_bench_harness_deps(bench_websocketpp_roundtrip)
 target_include_directories(bench_websocketpp_roundtrip SYSTEM PRIVATE
     ${websocketpp_SOURCE_DIR}
     ${asio_SOURCE_DIR}/asio/include
 )
-target_link_libraries(bench_websocketpp_roundtrip PRIVATE Threads::Threads)
 list(APPEND WSCPP_COMPARE_TARGETS bench_websocketpp_roundtrip)
 
 # --- IXWebSocket 11.4.x ---
@@ -34,11 +42,11 @@ if(WSCPP_COMPARE_IXWEBSOCKET)
     FetchContent_MakeAvailable(ixwebsocket)
 
     add_executable(bench_ixwebsocket_roundtrip bench_ixwebsocket_roundtrip.cpp)
-    target_include_directories(bench_ixwebsocket_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    wscpp_bench_harness_deps(bench_ixwebsocket_roundtrip)
     target_include_directories(bench_ixwebsocket_roundtrip SYSTEM PRIVATE
         ${asio_SOURCE_DIR}/asio/include
     )
-    target_link_libraries(bench_ixwebsocket_roundtrip PRIVATE ixwebsocket::ixwebsocket Threads::Threads)
+    target_link_libraries(bench_ixwebsocket_roundtrip PRIVATE ixwebsocket::ixwebsocket)
     list(APPEND WSCPP_COMPARE_TARGETS bench_ixwebsocket_roundtrip)
 endif()
 
@@ -56,11 +64,8 @@ if(WSCPP_COMPARE_EASYWSCLIENT)
         bench_easywsclient_connect.cpp
         ${easywsclient_SOURCE_DIR}/easywsclient.cpp
     )
-    target_include_directories(bench_easywsclient_connect PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
-        ${easywsclient_SOURCE_DIR}
-    )
-    target_link_libraries(bench_easywsclient_connect PRIVATE wscpp Threads::Threads)
+    wscpp_setup_bench(bench_easywsclient_connect)
+    target_include_directories(bench_easywsclient_connect PRIVATE ${easywsclient_SOURCE_DIR})
     list(APPEND WSCPP_COMPARE_TARGETS bench_easywsclient_connect)
 endif()
 
@@ -73,11 +78,8 @@ if(WSCPP_COMPARE_LIBWEBSOCKETS)
     endif()
     if(LWS_FOUND)
         add_executable(bench_libwebsockets_roundtrip bench_libwebsockets_roundtrip.cpp)
-        target_include_directories(bench_libwebsockets_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-        target_include_directories(bench_libwebsockets_roundtrip SYSTEM PRIVATE
-            ${asio_SOURCE_DIR}/asio/include
-        )
-        target_link_libraries(bench_libwebsockets_roundtrip PRIVATE PkgConfig::LWS Threads::Threads)
+        wscpp_bench_harness_deps(bench_libwebsockets_roundtrip)
+        target_link_libraries(bench_libwebsockets_roundtrip PRIVATE PkgConfig::LWS)
         list(APPEND WSCPP_COMPARE_TARGETS bench_libwebsockets_roundtrip)
     else()
         message(STATUS "libwebsockets not found; skip bench_libwebsockets_roundtrip")
@@ -90,8 +92,8 @@ if(WSCPP_COMPARE_BEAST)
     find_package(Boost 1.70 COMPONENTS system QUIET)
     if(Boost_FOUND)
         add_executable(bench_beast_roundtrip bench_beast_roundtrip.cpp)
-        target_include_directories(bench_beast_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-        target_link_libraries(bench_beast_roundtrip PRIVATE Boost::system Threads::Threads)
+        wscpp_bench_harness_deps(bench_beast_roundtrip)
+        target_link_libraries(bench_beast_roundtrip PRIVATE Boost::system)
         list(APPEND WSCPP_COMPARE_TARGETS bench_beast_roundtrip)
     else()
         message(STATUS "Boost (system) not found; skip bench_beast_roundtrip")
@@ -120,7 +122,7 @@ if(WSCPP_COMPARE_SWS)
     target_link_libraries(wscpp_sws INTERFACE Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
 
     add_executable(bench_sws_roundtrip bench_sws_roundtrip.cpp)
-    target_include_directories(bench_sws_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    wscpp_bench_harness_deps(bench_sws_roundtrip)
     target_link_libraries(bench_sws_roundtrip PRIVATE wscpp_sws)
     list(APPEND WSCPP_COMPARE_TARGETS bench_sws_roundtrip)
 endif()
@@ -129,3 +131,5 @@ add_custom_target(compare_benchmarks
     DEPENDS ${WSCPP_COMPARE_TARGETS}
     COMMENT "Build all comparative WebSocket benchmarks"
 )
+
+set(WSCPP_COMPARE_TARGETS ${WSCPP_COMPARE_TARGETS} PARENT_SCOPE)

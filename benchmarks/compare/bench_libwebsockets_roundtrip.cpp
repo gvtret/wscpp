@@ -1,9 +1,7 @@
 // bench_libwebsockets_roundtrip.cpp — echo latency comparison (libwebsockets 4.3.x)
 
-#include "../bench_common.hpp"
+#include "../bench_util.hpp"
 #include <libwebsockets.h>
-#include <asio/io_context.hpp>
-#include <asio/ip/tcp.hpp>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -18,12 +16,6 @@ namespace {
 
 constexpr int kSamples = 100;
 constexpr char kProtocolName[] = "wscpp-bench-echo";
-
-uint16_t pick_free_port() {
-    asio::io_context io;
-    asio::ip::tcp::acceptor acc(io, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
-    return acc.local_endpoint().port();
-}
 
 struct bench_state {
     int samples;
@@ -130,6 +122,7 @@ static struct lws_protocols kClientProtocols[] = {
 } // namespace
 
 int main() {
+    print_compare_banner("bench_libwebsockets_roundtrip");
     lws_set_log_level(0, NULL);
 
     const uint16_t port = pick_free_port();

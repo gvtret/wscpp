@@ -1,6 +1,6 @@
 // bench_beast_roundtrip.cpp — echo latency comparison (Boost.Beast)
 
-#include "../bench_common.hpp"
+#include "../bench_util.hpp"
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
@@ -122,6 +122,7 @@ uint16_t start_echo_server(std::thread& server_thread, std::atomic<bool>& runnin
 } // namespace
 
 int main() {
+    print_compare_banner("bench_beast_roundtrip");
     const int samples = 100;
 
     std::atomic<bool> running(true);

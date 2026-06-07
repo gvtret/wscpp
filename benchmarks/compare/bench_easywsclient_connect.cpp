@@ -1,10 +1,8 @@
 // bench_easywsclient_connect.cpp — WebSocket connect latency (easywsclient, client-only)
 
-#include "../bench_common.hpp"
+#include "../bench_util.hpp"
 #include "easywsclient.hpp"
 #include <wscpp/server.hpp>
-#include <asio/io_context.hpp>
-#include <asio/ip/tcp.hpp>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -13,17 +11,8 @@
 using namespace wscpp;
 using namespace wscpp::bench;
 
-namespace {
-
-uint16_t pick_free_port() {
-    asio::io_context io;
-    asio::ip::tcp::acceptor acc(io, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
-    return acc.local_endpoint().port();
-}
-
-} // namespace
-
 int main() {
+    print_compare_banner("bench_easywsclient_connect");
     const int samples = 100;
     const uint16_t port = pick_free_port();
 

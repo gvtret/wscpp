@@ -1,6 +1,6 @@
 # Comparative benchmarks (F2)
 
-Side-by-side scenarios for C++11 WebSocket libraries. Built when `WSCPP_BUILD_BENCHMARKS=ON`.
+Side-by-side scenarios for **`C++11`** WebSocket libraries. Built when `WSCPP_BUILD_BENCHMARKS=ON`.
 
 **Policy:** publish numbers only after the RFC gate in `ANALYSIS.md` is green (RFC 6455 + UTF-8 §8.1 + basic WSS).
 
@@ -16,11 +16,17 @@ Side-by-side scenarios for C++11 WebSocket libraries. Built when `WSCPP_BUILD_BE
 | `bench_beast_roundtrip` | Boost.Beast | Boost 1.70+ | echo latency, 64 KiB throughput |
 | `bench_sws_roundtrip` | Simple-WebSocket-Server | GitLab `0e1cf67` | echo latency |
 
-Build all:
+Build and run all:
 
 ```bash
 cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON
 cmake --build build --target benchmarks compare_benchmarks
+cmake --build build --target run_benchmarks
+```
+
+Manual run:
+
+```bash
 ./build/bin/bench_frame_parse
 ./build/bin/bench_masking
 ./build/bin/bench_roundtrip
@@ -41,6 +47,7 @@ CMake options (default ON when compare is enabled):
 | `WSCPP_COMPARE_LIBWEBSOCKETS` | libwebsockets roundtrip bench (needs `libwebsockets-dev`) |
 | `WSCPP_COMPARE_BEAST` | Boost.Beast roundtrip bench (needs `libboost-system-dev`) |
 | `WSCPP_COMPARE_SWS` | Simple-WebSocket-Server roundtrip bench (FetchContent + standalone ASIO) |
+| `WSCPP_USE_ASIO` | wscpp transport for `bench_roundtrip` / easywsclient server half |
 
 ## Notes
 
@@ -48,5 +55,6 @@ CMake options (default ON when compare is enabled):
 - **easywsclient:** URL must not have a trailing slash when the path is empty (`ws://127.0.0.1:PORT`). The bench uses a wscpp acceptor and server-side close after open to avoid connection pile-up.
 - **Beast:** sync echo server/client on localhost; server binds port 0 and passes the assigned port to the client.
 - **Simple-WebSocket-Server:** pinned GitLab commit with modern standalone ASIO (`ASIO_STANDALONE`); client runs in a worker thread.
+- **Harness:** `bench_util.hpp` provides `pick_free_port()` and consistent banners; `run_benchmarks.sh` prints sizes after all runs.
 
-Metrics to record: echo latency p50/p99, throughput MB/s, static binary size (`ls -la`), peak RSS (`/usr/bin/time -v`).
+Metrics to record: echo latency p50/p99, throughput MB/s, static binary size (`run_benchmarks.sh` footer), peak RSS (`/usr/bin/time -v`).

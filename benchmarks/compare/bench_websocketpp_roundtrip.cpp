@@ -1,6 +1,6 @@
 // bench_websocketpp_roundtrip.cpp — echo latency comparison baseline
 
-#include "../bench_common.hpp"
+#include "../bench_util.hpp"
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <websocketpp/client.hpp>
@@ -18,17 +18,8 @@ using namespace wscpp::bench;
 typedef websocketpp::server<websocketpp::config::asio> ws_server;
 typedef websocketpp::client<websocketpp::config::asio> ws_client;
 
-namespace {
-
-uint16_t pick_free_port() {
-    asio::io_context io;
-    asio::ip::tcp::acceptor acc(io, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
-    return acc.local_endpoint().port();
-}
-
-} // namespace
-
 int main() {
+    print_compare_banner("bench_websocketpp_roundtrip");
     const int samples = 100;
     const uint16_t port = pick_free_port();
 
