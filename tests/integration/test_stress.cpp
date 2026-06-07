@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include <wscpp/server.hpp>
-#include <wscpp/client.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <atomic>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <string>
 #include <thread>
 #include <vector>
+#include <wscpp/client.hpp>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 
@@ -19,7 +19,7 @@ uint16_t pick_free_port() {
     return acc.local_endpoint().port();
 }
 
-bool wait_for(std::atomic<bool>& flag, int timeout_ms) {
+bool wait_for(std::atomic<bool> &flag, int timeout_ms) {
     for (int elapsed = 0; elapsed < timeout_ms; elapsed += 10) {
         if (flag.load()) {
             return true;
@@ -29,9 +29,9 @@ bool wait_for(std::atomic<bool>& flag, int timeout_ms) {
     return flag.load();
 }
 
-void start_echo_server(server& srv, uint16_t port) {
+void start_echo_server(server &srv, uint16_t port) {
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::TEXT) {
                 conn->send_text(std::string(data.begin(), data.end()));
             } else if (op == frame::opcode::BINARY) {
@@ -60,14 +60,13 @@ TEST(StressIntegration, ParallelClientsEcho) {
             const std::string msg = "client-" + std::to_string(i);
             std::atomic<bool> done(false);
             cli.set_on_open([&]() { cli.send_text(msg); });
-            cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode) {
+            cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
                 if (std::string(data.begin(), data.end()) == msg) {
                     cli.close();
                     done = true;
                 }
             });
-            const std::error_code ec =
-                cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+            const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
             if (ec) {
                 done = true;
             }
@@ -100,14 +99,13 @@ TEST(StressIntegration, LargeBinaryMessage) {
     std::thread client_thread([&]() {
         client cli;
         cli.set_on_open([&]() { cli.send_binary(payload.data(), payload.size()); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode op) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::BINARY && data.size() == payload_size) {
                 cli.close();
                 done = true;
             }
         });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             done = true;
         }
@@ -131,7 +129,7 @@ TEST(StressIntegration, RapidSmallMessages) {
     std::thread client_thread([&]() {
         client cli;
         cli.set_on_open([&]() { cli.send_text("start"); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
             const int count = received.fetch_add(1) + 1;
             if (count < message_count) {
                 cli.send_text("msg-" + std::to_string(count));
@@ -140,8 +138,7 @@ TEST(StressIntegration, RapidSmallMessages) {
                 done = true;
             }
         });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             done = true;
         }

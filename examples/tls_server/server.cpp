@@ -14,14 +14,14 @@ using namespace wscpp;
 
 namespace {
 
-void print_usage(const char* prog) {
+void print_usage(const char *prog) {
     std::cerr << "Usage: " << prog << " [--port PORT] [--cert CERT.pem] [--key KEY.pem]\n"
               << "  Defaults: port=8443, cert=cert.pem, key=key.pem\n";
 }
 
 } // namespace
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     uint16_t port = 8443;
     std::string cert_path = "cert.pem";
     std::string key_path = "key.pem";
@@ -45,10 +45,8 @@ int main(int argc, char* argv[]) {
 
 #if WSCPP_USE_ASIO
     auto ssl_ctx = std::make_shared<asio::ssl::context>(asio::ssl::context::tlsv12_server);
-    ssl_ctx->set_options(
-        asio::ssl::context::default_workarounds |
-        asio::ssl::context::no_sslv2 |
-        asio::ssl::context::no_sslv3);
+    ssl_ctx->set_options(asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 |
+                         asio::ssl::context::no_sslv3);
     ssl_ctx->use_certificate_chain_file(cert_path);
     ssl_ctx->use_private_key_file(key_path, asio::ssl::context::pem);
 #else
@@ -71,13 +69,13 @@ int main(int argc, char* argv[]) {
 
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
 #if WSCPP_USE_ASIO
-        std::cout << "Secure connection from "
-                  << conn->socket().native_socket().remote_endpoint() << std::endl;
+        std::cout << "Secure connection from " << conn->socket().native_socket().remote_endpoint()
+                  << std::endl;
 #else
         (void)conn;
         std::cout << "Secure connection accepted" << std::endl;
 #endif
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             const std::string message(data.begin(), data.end());
             std::cout << "Received: " << message << std::endl;
             conn->send_text("Echo: " + message);

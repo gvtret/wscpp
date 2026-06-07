@@ -5,7 +5,7 @@
 
 namespace wscpp {
 
-const char* get_version_string() {
+const char *get_version_string() {
     return WSCPP_VERSION_STRING;
 }
 

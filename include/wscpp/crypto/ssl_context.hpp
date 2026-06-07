@@ -17,7 +17,7 @@ namespace crypto {
  * @brief OpenSSL/TLS context configuration helper.
  */
 class ssl_context {
-public:
+  public:
     /** @brief TLS method selection. */
     enum class method {
         tls_client, ///< Generic TLS client
@@ -33,26 +33,26 @@ public:
     explicit ssl_context(method m = method::tlsv12);
     ~ssl_context();
 
-    ssl_context(const ssl_context&) = delete;
-    ssl_context& operator=(const ssl_context&) = delete;
+    ssl_context(const ssl_context &) = delete;
+    ssl_context &operator=(const ssl_context &) = delete;
 
-    ssl_context(ssl_context&&) noexcept;
-    ssl_context& operator=(ssl_context&&) noexcept;
+    ssl_context(ssl_context &&) noexcept;
+    ssl_context &operator=(ssl_context &&) noexcept;
 
-    asio::ssl::context& native_handle();
-    const asio::ssl::context& native_handle() const;
+    asio::ssl::context &native_handle();
+    const asio::ssl::context &native_handle() const;
 
     void set_options(uint32_t options);
     void set_verify_mode(asio::ssl::verify_mode mode);
     void set_verify_depth(int depth);
 
-    bool load_verify_file(const std::string& path);
-    bool load_cert_chain(const std::string& path);
-    bool load_private_key(const std::string& path);
+    bool load_verify_file(const std::string &path);
+    bool load_cert_chain(const std::string &path);
+    bool load_private_key(const std::string &path);
 
     std::shared_ptr<asio::ssl::context> shared_context();
 
-private:
+  private:
     std::shared_ptr<asio::ssl::context> context_;
 };
 

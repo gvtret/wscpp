@@ -1,12 +1,12 @@
 // test_openssl.cpp
 // Unit test for OpenSSL integration
 
-#include <gtest/gtest.h>
-#include <wscpp/crypto/ssl_context.hpp>
 #include <asio/ssl/context.hpp>
 #include <asio/ssl/error.hpp>
 #include <asio/ssl/verify_mode.hpp>
+#include <gtest/gtest.h>
 #include <string>
+#include <wscpp/crypto/ssl_context.hpp>
 
 // Test basic SSL context creation
 TEST(OpenSSLTest, CreateSSLContext) {
@@ -53,10 +53,8 @@ TEST(OpenSSLTest, SetVerifyDepth) {
 TEST(OpenSSLTest, SetOptions) {
     wscpp::crypto::ssl_context ctx;
     // Set common SSL options
-    ctx.set_options(
-        asio::ssl::context::no_sslv2 |
-        asio::ssl::context::no_sslv3 |
-        asio::ssl::context::no_compression);
+    ctx.set_options(asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3 |
+                    asio::ssl::context::no_compression);
 }
 
 // Test shared_context
@@ -70,9 +68,9 @@ TEST(OpenSSLTest, SharedContext) {
 // Test native_handle
 TEST(OpenSSLTest, NativeHandle) {
     wscpp::crypto::ssl_context ctx;
-    asio::ssl::context& native = ctx.native_handle();
-    const asio::ssl::context& native_const = ctx.native_handle();
-    
+    asio::ssl::context &native = ctx.native_handle();
+    const asio::ssl::context &native_const = ctx.native_handle();
+
     EXPECT_EQ(&native, &native_const);
 }
 
@@ -82,7 +80,7 @@ TEST(OpenSSLTest, MultipleMethods) {
     wscpp::crypto::ssl_context ctx2(wscpp::crypto::ssl_context::method::tlsv11);
     wscpp::crypto::ssl_context ctx3(wscpp::crypto::ssl_context::method::tls_client);
     wscpp::crypto::ssl_context ctx4(wscpp::crypto::ssl_context::method::tls_server);
-    
+
     EXPECT_NE(ctx1.native_handle().native_handle(), nullptr);
     EXPECT_NE(ctx2.native_handle().native_handle(), nullptr);
     EXPECT_NE(ctx3.native_handle().native_handle(), nullptr);
@@ -113,9 +111,7 @@ TEST(OpenSSLTest, TlsClientServerMethods) {
 
 TEST(OpenSSLTest, DisableLegacySslProtocols) {
     wscpp::crypto::ssl_context ctx(wscpp::crypto::ssl_context::method::tls_client);
-    ctx.set_options(
-        asio::ssl::context::no_sslv2 |
-        asio::ssl::context::no_sslv3);
+    ctx.set_options(asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3);
     ctx.set_verify_mode(asio::ssl::verify_peer);
     ctx.set_verify_depth(4);
 }

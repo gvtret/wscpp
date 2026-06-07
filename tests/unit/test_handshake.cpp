@@ -13,18 +13,14 @@ TEST(HandshakeTest, GenerateKeyIsBase64) {
     const std::string key = generate_key();
     EXPECT_EQ(key.size(), 24u);
     for (char c : key) {
-        EXPECT_TRUE(
-            (c >= 'A' && c <= 'Z') ||
-            (c >= 'a' && c <= 'z') ||
-            (c >= '0' && c <= '9') ||
-            c == '+' || c == '/' || c == '=');
+        EXPECT_TRUE((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                    c == '+' || c == '/' || c == '=');
     }
 }
 
 TEST(HandshakeTest, BuildClientRequestContainsRequiredHeaders) {
     const std::string key = "dGhlIHNhbXBsZSBub25jZQ==";
-    const std::string request =
-        build_client_request("example.com", "80", "/chat", key);
+    const std::string request = build_client_request("example.com", "80", "/chat", key);
 
     EXPECT_NE(request.find("GET /chat HTTP/1.1"), std::string::npos);
     EXPECT_NE(request.find("Host: example.com"), std::string::npos);
@@ -36,20 +32,18 @@ TEST(HandshakeTest, BuildClientRequestContainsRequiredHeaders) {
 }
 
 TEST(HandshakeTest, BuildClientRequestNonDefaultPort) {
-    const std::string request =
-        build_client_request("example.com", "8080", "/", "key");
+    const std::string request = build_client_request("example.com", "8080", "/", "key");
     EXPECT_NE(request.find("Host: example.com:8080"), std::string::npos);
 }
 
 TEST(HandshakeTest, ParseHttpHeaders) {
-    const std::string raw =
-        "GET / HTTP/1.1\r\n"
-        "Host: example.com\r\n"
-        "Upgrade: websocket\r\n"
-        "Connection: Upgrade\r\n"
-        "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
-        "Sec-WebSocket-Version: 13\r\n"
-        "\r\n";
+    const std::string raw = "GET / HTTP/1.1\r\n"
+                            "Host: example.com\r\n"
+                            "Upgrade: websocket\r\n"
+                            "Connection: Upgrade\r\n"
+                            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+                            "Sec-WebSocket-Version: 13\r\n"
+                            "\r\n";
 
     std::string request_line;
     std::map<std::string, std::string> headers;

@@ -1,14 +1,14 @@
 // bench_roundtrip.cpp — localhost WebSocket echo latency (wscpp)
 
 #include "bench_util.hpp"
-#include <wscpp/client.hpp>
-#include <wscpp/server.hpp>
 #include <atomic>
 #include <cstdio>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
+#include <wscpp/client.hpp>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 using namespace wscpp::bench;
@@ -21,7 +21,7 @@ int main() {
 
     server srv;
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
@@ -52,10 +52,11 @@ int main() {
             next_send = 1;
         });
 
-        cli.set_on_message([&](const std::vector<uint8_t>&, frame::opcode) {
+        cli.set_on_message([&](const std::vector<uint8_t> &, frame::opcode) {
             const int n = next_send - 1;
             if (n >= 0 && n < samples) {
-                const double ms = elapsed_sec(send_times[static_cast<std::size_t>(n)], clock::now()) * 1000.0;
+                const double ms =
+                    elapsed_sec(send_times[static_cast<std::size_t>(n)], clock::now()) * 1000.0;
                 {
                     std::lock_guard<std::mutex> lock(latency_mutex);
                     latencies_ms.push_back(ms);
@@ -71,8 +72,7 @@ int main() {
             }
         });
 
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             done = true;
         } else {
@@ -99,7 +99,7 @@ int main() {
     const uint16_t tp_port = pick_free_port();
     server tp_srv;
     tp_srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::BINARY) {
                 conn->send_binary(data.data(), data.size());
             }
@@ -120,7 +120,7 @@ int main() {
         client cli;
         int sent = 0;
         cli.set_on_open([&]() { cli.send_binary(blob.data(), blob.size()); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode op) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op != frame::opcode::BINARY || data.size() != throughput_bytes) {
                 return;
             }
@@ -133,8 +133,7 @@ int main() {
                 tp_done = true;
             }
         });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(tp_port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(tp_port) + "/");
         if (ec) {
             tp_done = true;
         } else {
@@ -152,10 +151,8 @@ int main() {
     tp_thread.join();
     tp_srv.stop();
 
-    print_throughput("echo_throughput_64k",
-                     static_cast<double>(throughput_bytes * tp_iterations),
-                     elapsed_sec(tp_start, tp_end),
-                     tp_iterations);
+    print_throughput("echo_throughput_64k", static_cast<double>(throughput_bytes * tp_iterations),
+                     elapsed_sec(tp_start, tp_end), tp_iterations);
 
     return latencies_ms.size() == static_cast<std::size_t>(samples) ? 0 : 1;
 }

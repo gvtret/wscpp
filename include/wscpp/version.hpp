@@ -9,7 +9,7 @@
 namespace wscpp {
 
 /** @return SemVer string from build (e.g. "0.1.0"). */
-const char* get_version_string();
+const char *get_version_string();
 
 /** @return Major version component. */
 int get_version_major();

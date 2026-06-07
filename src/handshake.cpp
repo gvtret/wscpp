@@ -1,34 +1,34 @@
-#include <wscpp/handshake.hpp>
-#include <openssl/sha.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
 #include <algorithm>
 #include <cctype>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <random>
 #include <sstream>
 #include <stdexcept>
+#include <wscpp/handshake.hpp>
 
 namespace wscpp {
 namespace handshake {
 
 namespace {
 
-std::string base64_encode(const unsigned char* data, std::size_t len) {
-    BIO* bio = BIO_new(BIO_s_mem());
-    BIO* b64 = BIO_new(BIO_f_base64());
+std::string base64_encode(const unsigned char *data, std::size_t len) {
+    BIO *bio = BIO_new(BIO_s_mem());
+    BIO *b64 = BIO_new(BIO_f_base64());
     BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
     bio = BIO_push(b64, bio);
     BIO_write(bio, data, static_cast<int>(len));
     BIO_flush(bio);
-    BUF_MEM* buf_mem = nullptr;
+    BUF_MEM *buf_mem = nullptr;
     BIO_get_mem_ptr(bio, &buf_mem);
     std::string result(buf_mem->data, buf_mem->length);
     BIO_free_all(bio);
     return result;
 }
 
-std::string to_lower(const std::string& s) {
+std::string to_lower(const std::string &s) {
     std::string out = s;
     for (std::size_t i = 0; i < out.size(); ++i) {
         out[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(out[i])));
@@ -36,7 +36,7 @@ std::string to_lower(const std::string& s) {
     return out;
 }
 
-std::string trim_crlf(const std::string& s) {
+std::string trim_crlf(const std::string &s) {
     std::string out = s;
     while (!out.empty() && (out.back() == '\r' || out.back() == '\n')) {
         out.pop_back();
@@ -55,20 +55,17 @@ std::string generate_key() {
     return base64_encode(bytes, 16);
 }
 
-std::string compute_accept(const std::string& key) {
-    static const char* magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+std::string compute_accept(const std::string &key) {
+    static const char *magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     std::string combined = key + magic;
     unsigned char hash[SHA_DIGEST_LENGTH];
-    SHA1(reinterpret_cast<const unsigned char*>(combined.data()), combined.size(), hash);
+    SHA1(reinterpret_cast<const unsigned char *>(combined.data()), combined.size(), hash);
     return base64_encode(hash, SHA_DIGEST_LENGTH);
 }
 
-std::string build_client_request(
-    const std::string& host,
-    const std::string& port,
-    const std::string& path,
-    const std::string& key,
-    const std::string& extensions) {
+std::string build_client_request(const std::string &host, const std::string &port,
+                                 const std::string &path, const std::string &key,
+                                 const std::string &extensions) {
     std::ostringstream request;
     request << "GET " << path << " HTTP/1.1\r\n";
     request << "Host: " << host;
@@ -87,10 +84,8 @@ std::string build_client_request(
     return request.str();
 }
 
-bool parse_http_headers(
-    const std::string& raw,
-    std::string& request_line,
-    std::map<std::string, std::string>& headers) {
+bool parse_http_headers(const std::string &raw, std::string &request_line,
+                        std::map<std::string, std::string> &headers) {
     std::istringstream stream(raw);
     if (!std::getline(stream, request_line)) {
         return false;
@@ -121,9 +116,7 @@ bool parse_http_headers(
     return true;
 }
 
-std::string build_server_response(
-    const std::string& accept_key,
-    const std::string& extensions) {
+std::string build_server_response(const std::string &accept_key, const std::string &extensions) {
     std::ostringstream response;
     response << "HTTP/1.1 101 Switching Protocols\r\n";
     response << "Upgrade: websocket\r\n";
@@ -136,9 +129,8 @@ std::string build_server_response(
     return response.str();
 }
 
-bool validate_client_request(const std::map<std::string, std::string>& headers) {
-    const std::map<std::string, std::string>::const_iterator upgrade =
-        headers.find("upgrade");
+bool validate_client_request(const std::map<std::string, std::string> &headers) {
+    const std::map<std::string, std::string>::const_iterator upgrade = headers.find("upgrade");
     const std::map<std::string, std::string>::const_iterator connection =
         headers.find("connection");
     const std::map<std::string, std::string>::const_iterator version =
@@ -146,8 +138,8 @@ bool validate_client_request(const std::map<std::string, std::string>& headers) 
     const std::map<std::string, std::string>::const_iterator key =
         headers.find("sec-websocket-key");
 
-    if (upgrade == headers.end() || connection == headers.end() ||
-        version == headers.end() || key == headers.end()) {
+    if (upgrade == headers.end() || connection == headers.end() || version == headers.end() ||
+        key == headers.end()) {
         return false;
     }
     if (to_lower(upgrade->second) != "websocket") {

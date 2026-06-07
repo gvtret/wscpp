@@ -1,7 +1,7 @@
 #include <wscpp/client.hpp>
+#include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/handshake.hpp>
-#include <wscpp/detail/make_unique.hpp>
 #if WSCPP_ENABLE_DEFLATE
 #include <wscpp/extensions/permessage_deflate.hpp>
 #endif
@@ -11,12 +11,9 @@
 namespace wscpp {
 
 class client::impl {
-public:
+  public:
     impl()
-        : io_context_(),
-          connection_(io_context_),
-          is_open_(false),
-          is_closing_(false)
+        : io_context_(), connection_(io_context_), is_open_(false), is_closing_(false)
 #if WSCPP_ENABLE_DEFLATE
           ,
           request_deflate_(false)
@@ -29,7 +26,7 @@ public:
         stop();
     }
 
-    std::error_code connect(const std::string& url) {
+    std::error_code connect(const std::string &url) {
         const url_info info = parse_url(url);
         std::error_code ec;
 
@@ -70,7 +67,7 @@ public:
         return std::error_code();
     }
 
-    void close(uint16_t status_code, const std::string& reason) {
+    void close(uint16_t status_code, const std::string &reason) {
         if (!is_open_ || is_closing_) {
             return;
         }
@@ -79,26 +76,38 @@ public:
         is_open_ = false;
     }
 
-    std::error_code send_text(const std::string& text, bool fin) {
+    std::error_code send_text(const std::string &text, bool fin) {
         return connection_.send_text(text, fin);
     }
 
-    std::error_code send_binary(const uint8_t* data, size_t size, bool fin) {
+    std::error_code send_binary(const uint8_t *data, size_t size, bool fin) {
         return connection_.send_binary(data, size, fin);
     }
 
-    std::error_code send_continuation(const std::string& data, bool fin) {
-        return connection_.send_continuation(
-            reinterpret_cast<const uint8_t*>(data.data()), data.size(), fin);
+    std::error_code send_continuation(const std::string &data, bool fin) {
+        return connection_.send_continuation(reinterpret_cast<const uint8_t *>(data.data()),
+                                             data.size(), fin);
     }
 
-    void set_on_open(open_callback cb) { connection_.set_on_open(cb); }
-    void set_on_message(message_callback cb) { connection_.set_on_message(cb); }
-    void set_on_close(close_callback cb) { connection_.set_on_close(cb); }
-    void set_on_error(error_callback cb) { connection_.set_on_error(cb); }
+    void set_on_open(open_callback cb) {
+        connection_.set_on_open(cb);
+    }
+    void set_on_message(message_callback cb) {
+        connection_.set_on_message(cb);
+    }
+    void set_on_close(close_callback cb) {
+        connection_.set_on_close(cb);
+    }
+    void set_on_error(error_callback cb) {
+        connection_.set_on_error(cb);
+    }
 
-    bool is_open() const { return is_open_; }
-    bool is_ssl() const { return connection_.is_ssl(); }
+    bool is_open() const {
+        return is_open_;
+    }
+    bool is_ssl() const {
+        return connection_.is_ssl();
+    }
 
     void run() {
         io_context_.run();
@@ -113,10 +122,12 @@ public:
     }
 
 #if WSCPP_ENABLE_DEFLATE
-    void enable_permessage_deflate(bool enable) { request_deflate_ = enable; }
+    void enable_permessage_deflate(bool enable) {
+        request_deflate_ = enable;
+    }
 #endif
 
-private:
+  private:
     std::error_code ensure_ssl_context() {
         if (ssl_context_) {
             return std::error_code();
@@ -130,7 +141,7 @@ private:
 #endif
     }
 
-    url_info parse_url(const std::string& url) {
+    url_info parse_url(const std::string &url) {
         url_info info;
         info.path = "/";
         info.secure = false;
@@ -161,7 +172,7 @@ private:
         return info;
     }
 
-    std::error_code perform_handshake(const url_info& info) {
+    std::error_code perform_handshake(const url_info &info) {
         const std::string key = handshake::generate_key();
 #if WSCPP_ENABLE_DEFLATE
         const std::string extensions =
@@ -197,8 +208,7 @@ private:
         if (request_deflate_) {
             const std::map<std::string, std::string>::const_iterator ext =
                 headers.find("sec-websocket-extensions");
-            if (ext != headers.end() &&
-                extensions::header_offers_permessage_deflate(ext->second)) {
+            if (ext != headers.end() && extensions::header_offers_permessage_deflate(ext->second)) {
                 connection_.set_permessage_deflate(true);
             }
         }
@@ -216,28 +226,27 @@ private:
     std::shared_ptr<net::ssl_context> ssl_context_;
 };
 
-client::client()
-    : pimpl_(detail::make_unique<impl>()) {}
+client::client() : pimpl_(detail::make_unique<impl>()) {}
 
 client::~client() = default;
 
-std::error_code client::connect(const std::string& url) {
+std::error_code client::connect(const std::string &url) {
     return pimpl_->connect(url);
 }
 
-void client::close(uint16_t status_code, const std::string& reason) {
+void client::close(uint16_t status_code, const std::string &reason) {
     pimpl_->close(status_code, reason);
 }
 
-std::error_code client::send_text(const std::string& text, bool fin) {
+std::error_code client::send_text(const std::string &text, bool fin) {
     return pimpl_->send_text(text, fin);
 }
 
-std::error_code client::send_binary(const uint8_t* data, size_t size, bool fin) {
+std::error_code client::send_binary(const uint8_t *data, size_t size, bool fin) {
     return pimpl_->send_binary(data, size, fin);
 }
 
-std::error_code client::send_continuation(const std::string& data, bool fin) {
+std::error_code client::send_continuation(const std::string &data, bool fin) {
     return pimpl_->send_continuation(data, fin);
 }
 

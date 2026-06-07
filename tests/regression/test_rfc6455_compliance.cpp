@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <wscpp/frame/parser.hpp>
 #include <wscpp/frame/builder.hpp>
+#include <wscpp/frame/parser.hpp>
 
 using namespace wscpp::frame;
 
@@ -18,8 +18,7 @@ TEST(Rfc6455Compliance, Section57UnmaskedTextHello) {
 
 // RFC 6455 section 5.7: masked text "Hello"
 TEST(Rfc6455Compliance, Section57MaskedTextHello) {
-    const uint8_t raw[] = {
-        0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58};
+    const uint8_t raw[] = {0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58};
     parser p;
     frame_header header;
     std::vector<uint8_t> payload;
@@ -37,8 +36,7 @@ TEST(Rfc6455Compliance, CloseFrameRoundTrip) {
     EXPECT_EQ(p.parse(frame.data(), frame.size(), header, payload), parse_result::COMPLETE);
     EXPECT_EQ(header.op, opcode::CLOSE);
     ASSERT_GE(payload.size(), 2u);
-    const uint16_t code =
-        static_cast<uint16_t>((payload[0] << 8) | payload[1]);
+    const uint16_t code = static_cast<uint16_t>((payload[0] << 8) | payload[1]);
     EXPECT_EQ(code, 1000u);
 }
 
@@ -63,10 +61,9 @@ TEST(Rfc6455Compliance, FragmentedFramesParseSeparately) {
     builder b;
     const std::string text = "fragmented message";
     const std::vector<uint8_t> frag1 = b.build_text(text.substr(0, 10), false, false);
-    const std::vector<uint8_t> frag2 = b.build(
-        opcode::CONTINUATION,
-        reinterpret_cast<const uint8_t*>(text.data() + 10),
-        text.size() - 10, true, false);
+    const std::vector<uint8_t> frag2 =
+        b.build(opcode::CONTINUATION, reinterpret_cast<const uint8_t *>(text.data() + 10),
+                text.size() - 10, true, false);
 
     parser p;
     frame_header header;

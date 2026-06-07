@@ -28,12 +28,12 @@ struct paths {
     std::string client_key;
 };
 
-inline bool file_exists(const std::string& path) {
+inline bool file_exists(const std::string &path) {
     std::ifstream in(path.c_str());
     return in.good();
 }
 
-inline std::string join_path(const std::string& dir, const char* name) {
+inline std::string join_path(const std::string &dir, const char *name) {
     if (dir.empty()) {
         return name;
     }
@@ -45,7 +45,7 @@ inline std::string join_path(const std::string& dir, const char* name) {
 
 inline paths fixture_paths() {
     paths p;
-    const char* env = std::getenv("WSCPP_TLS_FIXTURES_DIR");
+    const char *env = std::getenv("WSCPP_TLS_FIXTURES_DIR");
 #ifdef WSCPP_TLS_FIXTURES_DIR
     p.dir = env ? env : WSCPP_TLS_FIXTURES_DIR;
 #else
@@ -62,12 +62,8 @@ inline paths fixture_paths() {
 
 inline bool fixtures_available() {
     const paths p = fixture_paths();
-    return file_exists(p.ca_crt) &&
-           file_exists(p.ca_key) &&
-           file_exists(p.server_crt) &&
-           file_exists(p.server_key) &&
-           file_exists(p.client_crt) &&
-           file_exists(p.client_key);
+    return file_exists(p.ca_crt) && file_exists(p.ca_key) && file_exists(p.server_crt) &&
+           file_exists(p.server_key) && file_exists(p.client_crt) && file_exists(p.client_key);
 }
 
 inline void skip_unless_fixtures() {
@@ -77,24 +73,21 @@ inline void skip_unless_fixtures() {
     }
 }
 
-#define WSCPP_REQUIRE_TLS_FIXTURES() \
-    do { \
-        if (!::wscpp::test::tls::fixtures_available()) { \
-            GTEST_SKIP() << "TLS fixtures missing in " \
-                         << ::wscpp::test::tls::fixture_paths().dir \
-                         << " — run: bash scripts/gen-test-tls-certs.sh"; \
-        } \
+#define WSCPP_REQUIRE_TLS_FIXTURES()                                                               \
+    do {                                                                                           \
+        if (!::wscpp::test::tls::fixtures_available()) {                                           \
+            GTEST_SKIP() << "TLS fixtures missing in " << ::wscpp::test::tls::fixture_paths().dir  \
+                         << " — run: bash scripts/gen-test-tls-certs.sh";                          \
+        }                                                                                          \
     } while (0)
 
-inline std::shared_ptr<server::ssl_context> make_server_ssl_context(const paths& p,
+inline std::shared_ptr<server::ssl_context> make_server_ssl_context(const paths &p,
                                                                     bool require_client_cert) {
 #if WSCPP_USE_ASIO
     std::shared_ptr<asio::ssl::context> ctx(
         new asio::ssl::context(asio::ssl::context::tlsv12_server));
-    ctx->set_options(
-        asio::ssl::context::default_workarounds |
-        asio::ssl::context::no_sslv2 |
-        asio::ssl::context::no_sslv3);
+    ctx->set_options(asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 |
+                     asio::ssl::context::no_sslv3);
     asio::error_code ec;
     ctx->use_certificate_chain_file(p.server_crt, ec);
     if (ec) {
@@ -109,8 +102,7 @@ inline std::shared_ptr<server::ssl_context> make_server_ssl_context(const paths&
         if (ec) {
             return std::shared_ptr<server::ssl_context>();
         }
-        ctx->set_verify_mode(
-            asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
+        ctx->set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
     }
     return ctx;
 #else
@@ -132,9 +124,8 @@ inline std::shared_ptr<server::ssl_context> make_server_ssl_context(const paths&
 #endif
 }
 
-inline std::shared_ptr<client::ssl_context> make_client_ssl_context(const paths& p,
-                                                                    bool verify_server,
-                                                                    bool present_client_cert) {
+inline std::shared_ptr<client::ssl_context>
+make_client_ssl_context(const paths &p, bool verify_server, bool present_client_cert) {
 #if WSCPP_USE_ASIO
     std::shared_ptr<asio::ssl::context> ctx(
         new asio::ssl::context(asio::ssl::context::tlsv12_client));

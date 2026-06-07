@@ -20,14 +20,15 @@ using WsClient = SimpleWeb::SocketClient<SimpleWeb::WS>;
 using Connection = WsServer::Connection;
 using InMessage = WsServer::InMessage;
 
-void configure_echo_server(WsServer& server) {
+void configure_echo_server(WsServer &server) {
     server.config.port = 0;
     server.config.address = "127.0.0.1";
     server.config.reuse_address = true;
     server.config.thread_pool_size = 1;
 
-    auto& echo = server.endpoint["^/echo/?$"];
-    echo.on_message = [](std::shared_ptr<Connection> connection, std::shared_ptr<InMessage> message) {
+    auto &echo = server.endpoint["^/echo/?$"];
+    echo.on_message = [](std::shared_ptr<Connection> connection,
+                         std::shared_ptr<InMessage> message) {
         connection->send(message->string());
     };
 }
@@ -43,9 +44,8 @@ int main() {
 
     std::promise<uint16_t> listen_port;
     std::thread server_thread([&]() {
-        server.start([&listen_port](unsigned short bound_port) {
-            listen_port.set_value(bound_port);
-        });
+        server.start(
+            [&listen_port](unsigned short bound_port) { listen_port.set_value(bound_port); });
     });
 
     const uint16_t actual_port = listen_port.get_future().get();
@@ -83,12 +83,13 @@ int main() {
         }
     };
 
-    client.on_error = [&done](std::shared_ptr<WsClient::Connection>, const SimpleWeb::error_code& ec) {
+    client.on_error = [&done](std::shared_ptr<WsClient::Connection>,
+                              const SimpleWeb::error_code &ec) {
         std::fprintf(stderr, "sws client error: %s\n", ec.message().c_str());
         done = true;
     };
 
-    client.on_close = [&done](std::shared_ptr<WsClient::Connection>, int, const std::string&) {
+    client.on_close = [&done](std::shared_ptr<WsClient::Connection>, int, const std::string &) {
         done = true;
     };
 
@@ -108,8 +109,7 @@ int main() {
         server_thread.join();
     }
 
-    std::printf("simple-websocket-server roundtrip (%zu samples, port %u)\n",
-                latencies_ms.size(),
+    std::printf("simple-websocket-server roundtrip (%zu samples, port %u)\n", latencies_ms.size(),
                 actual_port);
     print_latency("echo_latency", latencies_ms);
 

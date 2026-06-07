@@ -10,15 +10,15 @@
  * @brief WebSocket client API (ws:// and wss://).
  */
 
-#include <wscpp/net/transport.hpp>
-#include <memory>
+#include "connection.hpp"
+#include "frame/builder.hpp"
+#include "frame/parser.hpp"
 #include <functional>
+#include <memory>
 #include <string>
 #include <system_error>
 #include <vector>
-#include "connection.hpp"
-#include "frame/parser.hpp"
-#include "frame/builder.hpp"
+#include <wscpp/net/transport.hpp>
 
 namespace wscpp {
 
@@ -26,13 +26,13 @@ namespace wscpp {
  * @brief High-level WebSocket client with URL-based connect.
  */
 class client {
-public:
+  public:
     using ssl_context = net::ssl_context;
     using connection_type = connection;
 
-    using message_callback = std::function<void(const std::vector<uint8_t>&, frame::opcode)>;
-    using close_callback = std::function<void(uint16_t, const std::string&)>;
-    using error_callback = std::function<void(const std::string&)>;
+    using message_callback = std::function<void(const std::vector<uint8_t> &, frame::opcode)>;
+    using close_callback = std::function<void(uint16_t, const std::string &)>;
+    using error_callback = std::function<void(const std::string &)>;
     using open_callback = std::function<void()>;
 
     /** @brief Construct client with internal io_context. */
@@ -40,30 +40,30 @@ public:
     /** @brief Destructor; closes connection if open. */
     ~client();
 
-    client(const client&) = delete;
-    client& operator=(const client&) = delete;
+    client(const client &) = delete;
+    client &operator=(const client &) = delete;
 
     /**
      * @brief Connect to WebSocket URL (ws:// or wss://).
      * @param url Full WebSocket URL including path.
      */
-    std::error_code connect(const std::string& url);
+    std::error_code connect(const std::string &url);
 
     /**
      * @brief Send close frame and shut down connection.
      * @param status_code RFC 6455 close status (default 1000).
      * @param reason Optional UTF-8 reason phrase.
      */
-    void close(uint16_t status_code = 1000, const std::string& reason = "");
+    void close(uint16_t status_code = 1000, const std::string &reason = "");
 
     /** @brief Send a text WebSocket frame. */
-    std::error_code send_text(const std::string& text, bool fin = true);
+    std::error_code send_text(const std::string &text, bool fin = true);
 
     /** @brief Send a binary WebSocket frame. */
-    std::error_code send_binary(const uint8_t* data, size_t size, bool fin = true);
+    std::error_code send_binary(const uint8_t *data, size_t size, bool fin = true);
 
     /** @brief Send continuation fragment (multi-frame message). */
-    std::error_code send_continuation(const std::string& data, bool fin = true);
+    std::error_code send_continuation(const std::string &data, bool fin = true);
 
     /** @brief Register callback invoked after WebSocket handshake completes. */
     void set_on_open(open_callback cb);
@@ -100,7 +100,7 @@ public:
     void enable_permessage_deflate(bool enable = true);
 #endif
 
-private:
+  private:
     struct url_info {
         std::string scheme;
         std::string host;
@@ -109,7 +109,7 @@ private:
         bool secure;
     };
 
-    url_info parse_url(const std::string& url);
+    url_info parse_url(const std::string &url);
 
     class impl;
     std::unique_ptr<impl> pimpl_;

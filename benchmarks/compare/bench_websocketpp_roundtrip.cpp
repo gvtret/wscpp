@@ -1,9 +1,6 @@
 // bench_websocketpp_roundtrip.cpp — echo latency comparison baseline
 
 #include "../bench_util.hpp"
-#include <websocketpp/config/asio_no_tls.hpp>
-#include <websocketpp/server.hpp>
-#include <websocketpp/client.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <atomic>
@@ -12,6 +9,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_no_tls.hpp>
+#include <websocketpp/server.hpp>
 
 using namespace wscpp::bench;
 
@@ -28,9 +28,10 @@ int main() {
     server.set_reuse_addr(true);
     server.clear_access_channels(websocketpp::log::alevel::all);
     server.clear_error_channels(websocketpp::log::elevel::all);
-    server.set_message_handler([&server](websocketpp::connection_hdl hdl, ws_server::message_ptr msg) {
-        server.send(hdl, msg->get_payload(), msg->get_opcode());
-    });
+    server.set_message_handler(
+        [&server](websocketpp::connection_hdl hdl, ws_server::message_ptr msg) {
+            server.send(hdl, msg->get_payload(), msg->get_opcode());
+        });
     server.listen(port);
     server.start_accept();
 
@@ -71,15 +72,15 @@ int main() {
     conn->set_message_handler([&](websocketpp::connection_hdl, ws_client::message_ptr) {
         const int n = next_send - 1;
         if (n >= 0 && n < samples) {
-            const double ms = elapsed_sec(send_times[static_cast<std::size_t>(n)], clock::now()) * 1000.0;
+            const double ms =
+                elapsed_sec(send_times[static_cast<std::size_t>(n)], clock::now()) * 1000.0;
             std::lock_guard<std::mutex> lock(latency_mutex);
             latencies_ms.push_back(ms);
         }
         if (next_send < samples) {
             send_times[static_cast<std::size_t>(next_send)] = clock::now();
-            client.send(conn->get_handle(),
-                          "ping-" + std::to_string(next_send),
-                          websocketpp::frame::opcode::text);
+            client.send(conn->get_handle(), "ping-" + std::to_string(next_send),
+                        websocketpp::frame::opcode::text);
             ++next_send;
         } else {
             websocketpp::lib::error_code close_ec;

@@ -10,22 +10,28 @@ namespace net {
 
 /** @brief Growable byte buffer for HTTP handshake reads (non-ASIO transport). */
 class stream_buffer {
-public:
-    void append(const char* data, std::size_t size) {
+  public:
+    void append(const char *data, std::size_t size) {
         data_.insert(data_.end(), data, data + size);
     }
 
-    void append(char byte) { data_.push_back(byte); }
+    void append(char byte) {
+        data_.push_back(byte);
+    }
 
     std::string to_string() const {
         return std::string(data_.begin(), data_.end());
     }
 
-    void clear() { data_.clear(); }
+    void clear() {
+        data_.clear();
+    }
 
-    std::size_t size() const { return data_.size(); }
+    std::size_t size() const {
+        return data_.size();
+    }
 
-private:
+  private:
     std::vector<char> data_;
 };
 

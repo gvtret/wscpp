@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
-#include <wscpp/server.hpp>
-#include <wscpp/error.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
+#include <gtest/gtest.h>
+#include <wscpp/error.hpp>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 

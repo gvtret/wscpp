@@ -1,11 +1,11 @@
 // bench_beast_roundtrip.cpp — echo latency comparison (Boost.Beast)
 
 #include "../bench_util.hpp"
+#include <atomic>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
-#include <atomic>
 #include <cstdio>
 #include <future>
 #include <string>
@@ -21,7 +21,7 @@ using tcp = net::ip::tcp;
 
 namespace {
 
-void run_echo_server(std::promise<uint16_t> port_promise, std::atomic<bool>& running) {
+void run_echo_server(std::promise<uint16_t> port_promise, std::atomic<bool> &running) {
     try {
         net::io_context ioc;
         tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), 0));
@@ -41,18 +41,17 @@ void run_echo_server(std::promise<uint16_t> port_promise, std::atomic<bool>& run
             ws.write(buffer.data());
             buffer.consume(buffer.size());
         }
-    } catch (const beast::system_error& se) {
-        if (se.code() != websocket::error::closed &&
-            se.code() != net::error::operation_aborted &&
+    } catch (const beast::system_error &se) {
+        if (se.code() != websocket::error::closed && se.code() != net::error::operation_aborted &&
             se.code() != net::error::connection_reset) {
             std::fprintf(stderr, "beast server: %s\n", se.code().message().c_str());
         }
-    } catch (const std::exception& ex) {
+    } catch (const std::exception &ex) {
         std::fprintf(stderr, "beast server: %s\n", ex.what());
     }
 }
 
-bool run_echo_client(uint16_t port, int samples, std::vector<double>& latencies_ms) {
+bool run_echo_client(uint16_t port, int samples, std::vector<double> &latencies_ms) {
     try {
         net::io_context ioc;
         websocket::stream<tcp::socket> ws(ioc);
@@ -77,13 +76,13 @@ bool run_echo_client(uint16_t port, int samples, std::vector<double>& latencies_
 
         ws.close(websocket::close_code::normal);
         return true;
-    } catch (const std::exception& ex) {
+    } catch (const std::exception &ex) {
         std::fprintf(stderr, "beast client: %s\n", ex.what());
         return false;
     }
 }
 
-bool run_throughput(uint16_t port, std::size_t payload_bytes, int iterations, double& seconds_out) {
+bool run_throughput(uint16_t port, std::size_t payload_bytes, int iterations, double &seconds_out) {
     try {
         net::io_context ioc;
         websocket::stream<tcp::socket> ws(ioc);
@@ -106,13 +105,13 @@ bool run_throughput(uint16_t port, std::size_t payload_bytes, int iterations, do
         seconds_out = elapsed_sec(t0, clock::now());
         ws.close(websocket::close_code::normal);
         return true;
-    } catch (const std::exception& ex) {
+    } catch (const std::exception &ex) {
         std::fprintf(stderr, "beast throughput: %s\n", ex.what());
         return false;
     }
 }
 
-uint16_t start_echo_server(std::thread& server_thread, std::atomic<bool>& running) {
+uint16_t start_echo_server(std::thread &server_thread, std::atomic<bool> &running) {
     std::promise<uint16_t> port_promise;
     std::future<uint16_t> port_future = port_promise.get_future();
     server_thread = std::thread(run_echo_server, std::move(port_promise), std::ref(running));
@@ -148,10 +147,8 @@ int main() {
     const uint16_t tp_port = start_echo_server(server_thread, running);
     double tp_seconds = 0.0;
     if (run_throughput(tp_port, throughput_bytes, 100, tp_seconds)) {
-        print_throughput("echo_throughput_64k",
-                         static_cast<double>(throughput_bytes * 100),
-                         tp_seconds,
-                         100);
+        print_throughput("echo_throughput_64k", static_cast<double>(throughput_bytes * 100),
+                         tp_seconds, 100);
     }
     running = false;
     if (server_thread.joinable()) {

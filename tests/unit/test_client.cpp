@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
-#include <wscpp/client.hpp>
-#include <wscpp/server.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <atomic>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <string>
 #include <thread>
+#include <wscpp/client.hpp>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 
@@ -18,7 +18,7 @@ uint16_t pick_free_port() {
     return acc.local_endpoint().port();
 }
 
-bool wait_for(std::atomic<bool>& flag, int timeout_ms) {
+bool wait_for(std::atomic<bool> &flag, int timeout_ms) {
     for (int elapsed = 0; elapsed < timeout_ms; elapsed += 10) {
         if (flag.load()) {
             return true;
@@ -49,7 +49,7 @@ TEST(ClientTest, LoopbackEcho) {
 
     server srv;
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
@@ -59,13 +59,12 @@ TEST(ClientTest, LoopbackEcho) {
     std::thread t([&]() {
         client cli;
         cli.set_on_open([&]() { cli.send_text("unit"); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
             received = std::string(data.begin(), data.end());
             cli.close();
             done = true;
         });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/echo");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/echo");
         if (ec) {
             ADD_FAILURE() << ec.message();
             done = true;

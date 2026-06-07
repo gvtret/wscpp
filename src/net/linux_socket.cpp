@@ -1,6 +1,3 @@
-#include <wscpp/net/linux_socket.hpp>
-#include <wscpp/error.hpp>
-#include <wscpp/detail/make_unique.hpp>
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
@@ -11,13 +8,16 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <wscpp/detail/make_unique.hpp>
+#include <wscpp/error.hpp>
+#include <wscpp/net/linux_socket.hpp>
 
 namespace wscpp {
 namespace net {
 
 namespace {
 
-void close_fd(int& fd) {
+void close_fd(int &fd) {
     if (fd >= 0) {
         ::shutdown(fd, SHUT_RDWR);
         ::close(fd);
@@ -25,13 +25,13 @@ void close_fd(int& fd) {
     }
 }
 
-std::error_code connect_host(const std::string& host, const std::string& port, int& out_fd) {
+std::error_code connect_host(const std::string &host, const std::string &port, int &out_fd) {
     addrinfo hints;
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    addrinfo* result = nullptr;
+    addrinfo *result = nullptr;
     const int rc = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
     if (rc != 0) {
         return make_error_code(errc::host_not_found);
@@ -39,7 +39,7 @@ std::error_code connect_host(const std::string& host, const std::string& port, i
 
     int fd = -1;
     std::error_code last_ec = make_error_code(errc::host_not_found);
-    for (addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
+    for (addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
         fd = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (fd < 0) {
             last_ec = std::error_code(errno, std::system_category());
@@ -59,11 +59,8 @@ std::error_code connect_host(const std::string& host, const std::string& port, i
 
 } // namespace
 
-linux_socket::linux_socket(io_context& io_context)
-    : io_context_(io_context),
-      fd_(-1),
-      ssl_(nullptr),
-      ssl_enabled_(false) {
+linux_socket::linux_socket(io_context &io_context)
+    : io_context_(io_context), fd_(-1), ssl_(nullptr), ssl_enabled_(false) {
     (void)io_context_;
 }
 
@@ -71,14 +68,14 @@ linux_socket::~linux_socket() {
     close();
 }
 
-std::error_code linux_socket::connect(const std::string& host, const std::string& port) {
+std::error_code linux_socket::connect(const std::string &host, const std::string &port) {
     if (is_open()) {
         close();
     }
     return connect_host(host, port, fd_);
 }
 
-std::error_code linux_socket::connect(const tcp_endpoint& endpoint) {
+std::error_code linux_socket::connect(const tcp_endpoint &endpoint) {
     return connect(endpoint.address, std::to_string(endpoint.port));
 }
 
@@ -104,14 +101,14 @@ void linux_socket::close() {
     close_fd(fd_);
 }
 
-std::size_t linux_socket::write(const void* data, std::size_t size, std::error_code& ec) {
+std::size_t linux_socket::write(const void *data, std::size_t size, std::error_code &ec) {
     ec.clear();
     if (!is_open()) {
         ec = make_error_code(errc::not_connected);
         return 0;
     }
 
-    const char* ptr = static_cast<const char*>(data);
+    const char *ptr = static_cast<const char *>(data);
     std::size_t total = 0;
     while (total < size) {
         int n = 0;
@@ -137,9 +134,9 @@ std::size_t linux_socket::write(const void* data, std::size_t size, std::error_c
     return total;
 }
 
-std::size_t linux_socket::read_raw(void* data, std::size_t size, bool exact, std::error_code& ec) {
+std::size_t linux_socket::read_raw(void *data, std::size_t size, bool exact, std::error_code &ec) {
     ec.clear();
-    char* ptr = static_cast<char*>(data);
+    char *ptr = static_cast<char *>(data);
     std::size_t total = 0;
     while (total < size) {
         int n = 0;
@@ -168,7 +165,7 @@ std::size_t linux_socket::read_raw(void* data, std::size_t size, bool exact, std
     return total;
 }
 
-std::size_t linux_socket::read(void* data, std::size_t size, std::error_code& ec) {
+std::size_t linux_socket::read(void *data, std::size_t size, std::error_code &ec) {
     if (!is_open()) {
         ec = make_error_code(errc::not_connected);
         return 0;
@@ -176,7 +173,7 @@ std::size_t linux_socket::read(void* data, std::size_t size, std::error_code& ec
     return read_raw(data, size, true, ec);
 }
 
-std::size_t linux_socket::read_some_raw(void* data, std::size_t size, std::error_code& ec) {
+std::size_t linux_socket::read_some_raw(void *data, std::size_t size, std::error_code &ec) {
     if (!is_open()) {
         ec = make_error_code(errc::not_connected);
         return 0;
@@ -184,11 +181,12 @@ std::size_t linux_socket::read_some_raw(void* data, std::size_t size, std::error
     return read_raw(data, size, false, ec);
 }
 
-std::size_t linux_socket::read_some(void* data, std::size_t size, std::error_code& ec) {
+std::size_t linux_socket::read_some(void *data, std::size_t size, std::error_code &ec) {
     return read_some_raw(data, size, ec);
 }
 
-std::size_t linux_socket::read_until(stream_buffer& buf, const std::string& delim, std::error_code& ec) {
+std::size_t linux_socket::read_until(stream_buffer &buf, const std::string &delim,
+                                     std::error_code &ec) {
     ec.clear();
     if (!is_open()) {
         ec = make_error_code(errc::not_connected);
@@ -245,7 +243,7 @@ std::error_code linux_socket::enable_ssl(std::shared_ptr<ssl_context> ctx) {
     return std::error_code();
 }
 
-std::error_code linux_socket::set_ssl_hostname(const std::string& host) {
+std::error_code linux_socket::set_ssl_hostname(const std::string &host) {
     if (!ssl_) {
         return make_error_code(errc::ssl_not_enabled);
     }

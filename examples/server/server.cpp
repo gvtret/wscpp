@@ -1,14 +1,14 @@
 // Server example for wscpp
 
-#include <wscpp/server.hpp>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     uint16_t port = 8080;
 
     if (argc > 1) {
@@ -19,25 +19,25 @@ int main(int argc, char* argv[]) {
 
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
 #if WSCPP_USE_ASIO
-        std::cout << "New connection from "
-                  << conn->socket().native_socket().remote_endpoint() << std::endl;
+        std::cout << "New connection from " << conn->socket().native_socket().remote_endpoint()
+                  << std::endl;
 #else
         std::cout << "New connection accepted" << std::endl;
 #endif
 
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode op) {
             (void)op;
             const std::string message(data.begin(), data.end());
             std::cout << "Received: " << message << std::endl;
             conn->send_text("Echo: " + message);
         });
 
-        conn->set_on_close([](uint16_t code, const std::string& reason) {
+        conn->set_on_close([](uint16_t code, const std::string &reason) {
             std::cout << "Connection closed: " << code << " - " << reason << std::endl;
         });
     });
 
-    srv.set_on_error([](std::shared_ptr<connection> conn, const std::string& error) {
+    srv.set_on_error([](std::shared_ptr<connection> conn, const std::string &error) {
         (void)conn;
         std::cerr << "Connection error: " << error << std::endl;
     });

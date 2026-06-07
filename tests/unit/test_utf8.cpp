@@ -34,5 +34,5 @@ TEST(Utf8Test, RejectsInvalidLeadByte) {
 }
 
 TEST(Utf8Test, EmptyIsValid) {
-    EXPECT_TRUE(is_valid_utf8(static_cast<const uint8_t*>(nullptr), 0));
+    EXPECT_TRUE(is_valid_utf8(static_cast<const uint8_t *>(nullptr), 0));
 }

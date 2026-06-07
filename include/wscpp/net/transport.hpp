@@ -22,7 +22,7 @@ using tcp_socket = asio::ip::tcp::socket;
 using ssl_context = asio::ssl::context;
 using stream_socket = asio_socket;
 
-inline std::string stream_buffer_to_string(const stream_buffer& buf) {
+inline std::string stream_buffer_to_string(const stream_buffer &buf) {
     const stream_buffer::const_buffers_type bufs = buf.data();
     return std::string(asio::buffers_begin(bufs), asio::buffers_end(bufs));
 }
@@ -32,20 +32,20 @@ inline std::string stream_buffer_to_string(const stream_buffer& buf) {
 
 #else
 
+#include <string>
 #include <wscpp/net/io_context.hpp>
 #include <wscpp/net/linux_socket.hpp>
 #include <wscpp/net/openssl_context.hpp>
 #include <wscpp/net/stream_buffer.hpp>
 #include <wscpp/net/tcp_endpoint.hpp>
 #include <wscpp/net/tcp_socket.hpp>
-#include <string>
 
 namespace wscpp {
 namespace net {
 
 using stream_socket = linux_socket;
 
-inline std::string stream_buffer_to_string(const stream_buffer& buf) {
+inline std::string stream_buffer_to_string(const stream_buffer &buf) {
     return buf.to_string();
 }
 

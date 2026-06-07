@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include <wscpp/client.hpp>
-#include <wscpp/server.hpp>
-#include <tls_fixtures.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <atomic>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <string>
 #include <thread>
+#include <tls_fixtures.hpp>
+#include <wscpp/client.hpp>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 using wscpp::test::tls::fixture_paths;
@@ -22,7 +22,7 @@ uint16_t pick_free_port() {
     return acc.local_endpoint().port();
 }
 
-bool wait_for(std::atomic<bool>& flag, int timeout_ms) {
+bool wait_for(std::atomic<bool> &flag, int timeout_ms) {
     for (int elapsed = 0; elapsed < timeout_ms; elapsed += 10) {
         if (flag.load()) {
             return true;
@@ -43,12 +43,11 @@ TEST(TlsIntegration, WssEchoWithServerCertificate) {
     std::string received;
 
     server srv;
-    const std::shared_ptr<server::ssl_context> ssl_ctx =
-        make_server_ssl_context(paths, false);
+    const std::shared_ptr<server::ssl_context> ssl_ctx = make_server_ssl_context(paths, false);
     ASSERT_TRUE(ssl_ctx);
     srv.set_ssl_context(ssl_ctx);
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
@@ -58,13 +57,12 @@ TEST(TlsIntegration, WssEchoWithServerCertificate) {
     std::thread t([&]() {
         client cli;
         cli.set_on_open([&]() { cli.send_text("wss-ping"); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
             received = std::string(data.begin(), data.end());
             cli.close();
             done = true;
         });
-        const std::error_code ec =
-            cli.connect("wss://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("wss://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             ADD_FAILURE() << ec.message();
             done = true;
@@ -88,12 +86,11 @@ TEST(TlsIntegration, WssEchoWithCaVerification) {
     std::string received;
 
     server srv;
-    const std::shared_ptr<server::ssl_context> ssl_ctx =
-        make_server_ssl_context(paths, false);
+    const std::shared_ptr<server::ssl_context> ssl_ctx = make_server_ssl_context(paths, false);
     ASSERT_TRUE(ssl_ctx);
     srv.set_ssl_context(ssl_ctx);
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
@@ -111,13 +108,12 @@ TEST(TlsIntegration, WssEchoWithCaVerification) {
         }
         cli.set_ssl_context(client_ctx);
         cli.set_on_open([&]() { cli.send_text("verified"); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
             received = std::string(data.begin(), data.end());
             cli.close();
             done = true;
         });
-        const std::error_code ec =
-            cli.connect("wss://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("wss://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             ADD_FAILURE() << ec.message();
             done = true;
@@ -141,12 +137,11 @@ TEST(TlsIntegration, WssMutualTlsEcho) {
     std::string received;
 
     server srv;
-    const std::shared_ptr<server::ssl_context> server_ctx =
-        make_server_ssl_context(paths, true);
+    const std::shared_ptr<server::ssl_context> server_ctx = make_server_ssl_context(paths, true);
     ASSERT_TRUE(server_ctx);
     srv.set_ssl_context(server_ctx);
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode) {
             conn->send_text(std::string(data.begin(), data.end()));
         });
     });
@@ -164,13 +159,12 @@ TEST(TlsIntegration, WssMutualTlsEcho) {
         }
         cli.set_ssl_context(client_ctx);
         cli.set_on_open([&]() { cli.send_text("mtls"); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode) {
             received = std::string(data.begin(), data.end());
             cli.close();
             done = true;
         });
-        const std::error_code ec =
-            cli.connect("wss://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("wss://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             ADD_FAILURE() << ec.message();
             done = true;

@@ -6,7 +6,7 @@ namespace net {
 
 /** @brief Placeholder event loop when transport does not use ASIO. */
 class io_context {
-public:
+  public:
     void run() {}
 
     void stop() {}

@@ -1,26 +1,25 @@
 // bench_ixwebsocket_roundtrip.cpp — echo latency comparison (IXWebSocket 11.4.x)
 
 #include "../bench_util.hpp"
+#include <atomic>
+#include <cstdio>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXWebSocketServer.h>
-#include <atomic>
-#include <cstdio>
 #include <string>
 #include <thread>
 #include <vector>
 
 using namespace wscpp::bench;
 
-bool start_echo_server(ix::WebSocketServer& server) {
-    server.setOnClientMessageCallback(
-        [](std::shared_ptr<ix::ConnectionState>,
-           ix::WebSocket& webSocket,
-           const ix::WebSocketMessagePtr& msg) {
-            if (msg->type == ix::WebSocketMessageType::Message) {
-                webSocket.send(msg->str, msg->binary);
-            }
-        });
+bool start_echo_server(ix::WebSocketServer &server) {
+    server.setOnClientMessageCallback([](std::shared_ptr<ix::ConnectionState>,
+                                         ix::WebSocket &webSocket,
+                                         const ix::WebSocketMessagePtr &msg) {
+        if (msg->type == ix::WebSocketMessageType::Message) {
+            webSocket.send(msg->str, msg->binary);
+        }
+    });
     return server.listenAndStart();
 }
 
@@ -45,7 +44,7 @@ int main() {
 
     ix::WebSocket client;
     client.setUrl("ws://127.0.0.1:" + std::to_string(port) + "/");
-    client.setOnMessageCallback([&](const ix::WebSocketMessagePtr& msg) {
+    client.setOnMessageCallback([&](const ix::WebSocketMessagePtr &msg) {
         if (msg->type == ix::WebSocketMessageType::Open) {
             send_times[0] = clock::now();
             client.send("ping-0");
@@ -67,8 +66,7 @@ int main() {
                 done = true;
             }
         } else if (msg->type == ix::WebSocketMessageType::Error) {
-            std::fprintf(stderr, "ixwebsocket client error: %s\n",
-                         msg->errorInfo.reason.c_str());
+            std::fprintf(stderr, "ixwebsocket client error: %s\n", msg->errorInfo.reason.c_str());
             done = true;
         }
     });
@@ -101,7 +99,7 @@ int main() {
 
     ix::WebSocket tp_client;
     tp_client.setUrl("ws://127.0.0.1:" + std::to_string(tp_port) + "/");
-    tp_client.setOnMessageCallback([&](const ix::WebSocketMessagePtr& msg) {
+    tp_client.setOnMessageCallback([&](const ix::WebSocketMessagePtr &msg) {
         if (msg->type == ix::WebSocketMessageType::Open) {
             tp_client.sendBinary(blob);
         } else if (msg->type == ix::WebSocketMessageType::Message) {
@@ -129,8 +127,7 @@ int main() {
     const clock::time_point tp_end = clock::now();
     tp_server.stop();
 
-    print_throughput("echo_throughput_64k",
-                     static_cast<double>(throughput_bytes * tp_iterations),
+    print_throughput("echo_throughput_64k", static_cast<double>(throughput_bytes * tp_iterations),
                      elapsed_sec(tp_start, tp_end), tp_iterations);
 
     ix::uninitNetSystem();

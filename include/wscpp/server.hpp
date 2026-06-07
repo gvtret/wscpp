@@ -6,16 +6,16 @@
  * @brief WebSocket server API with optional TLS.
  */
 
-#include <wscpp/net/transport.hpp>
-#include <memory>
+#include "connection.hpp"
+#include "frame/builder.hpp"
+#include "frame/parser.hpp"
 #include <functional>
+#include <map>
+#include <memory>
 #include <string>
 #include <system_error>
 #include <vector>
-#include <map>
-#include "connection.hpp"
-#include "frame/parser.hpp"
-#include "frame/builder.hpp"
+#include <wscpp/net/transport.hpp>
 
 namespace wscpp {
 
@@ -23,28 +23,31 @@ namespace wscpp {
  * @brief WebSocket server accepting TCP (and optional TLS) connections.
  */
 class server {
-public:
+  public:
     using ssl_context = net::ssl_context;
     using connection_type = connection;
 
     using connection_callback = std::function<void(std::shared_ptr<connection_type>)>;
-    using message_callback = std::function<void(std::shared_ptr<connection_type>, const std::vector<uint8_t>&, frame::opcode)>;
-    using close_callback = std::function<void(std::shared_ptr<connection_type>, uint16_t, const std::string&)>;
-    using error_callback = std::function<void(std::shared_ptr<connection_type>, const std::string&)>;
+    using message_callback = std::function<void(std::shared_ptr<connection_type>,
+                                                const std::vector<uint8_t> &, frame::opcode)>;
+    using close_callback =
+        std::function<void(std::shared_ptr<connection_type>, uint16_t, const std::string &)>;
+    using error_callback =
+        std::function<void(std::shared_ptr<connection_type>, const std::string &)>;
 
     /** @brief Construct server with internal io_context. */
     server();
     /** @brief Destructor; stops acceptor and closes connections. */
     ~server();
 
-    server(const server&) = delete;
-    server& operator=(const server&) = delete;
+    server(const server &) = delete;
+    server &operator=(const server &) = delete;
 
     /** @brief Listen on all interfaces at @p port. */
     std::error_code listen(uint16_t port);
 
     /** @brief Listen on @p host at @p port. */
-    std::error_code listen(const std::string& host, uint16_t port);
+    std::error_code listen(const std::string &host, uint16_t port);
 
     /**
      * @brief Enable WSS by providing TLS context with certificate/key loaded.
@@ -79,7 +82,7 @@ public:
     /** @brief True after listen() succeeded. */
     bool is_running() const;
 
-private:
+  private:
     class impl;
     std::unique_ptr<impl> pimpl_;
 };

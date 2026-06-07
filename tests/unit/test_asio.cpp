@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
-#include <wscpp/net/asio_socket.hpp>
-#include <wscpp/error.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/ssl/context.hpp>
+#include <gtest/gtest.h>
+#include <wscpp/error.hpp>
+#include <wscpp/net/asio_socket.hpp>
 
 TEST(AsioSocketTest, CreateSocket) {
     asio::io_context io_context;
@@ -60,7 +60,7 @@ TEST(AsioSocketTest, SetSSLContext) {
 TEST(AsioSocketTest, WriteOperationRequiresConnection) {
     asio::io_context io_context;
     wscpp::net::asio_socket socket(io_context);
-    const char* test_data = "Hello, ASIO!";
+    const char *test_data = "Hello, ASIO!";
     std::error_code ec;
     socket.write(test_data, 12, ec);
     EXPECT_TRUE(ec);

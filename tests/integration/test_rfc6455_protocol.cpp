@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
-#include <wscpp/server.hpp>
-#include <wscpp/client.hpp>
-#include <wscpp/frame/builder.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <atomic>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <string>
 #include <thread>
+#include <wscpp/client.hpp>
+#include <wscpp/frame/builder.hpp>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 
@@ -19,7 +19,7 @@ uint16_t pick_free_port() {
     return acc.local_endpoint().port();
 }
 
-bool wait_for(std::atomic<bool>& flag, int timeout_ms) {
+bool wait_for(std::atomic<bool> &flag, int timeout_ms) {
     for (int elapsed = 0; elapsed < timeout_ms; elapsed += 10) {
         if (flag.load()) {
             return true;
@@ -38,7 +38,7 @@ TEST(Rfc6455Connection, FragmentedTextEcho) {
 
     server srv;
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::TEXT) {
                 conn->send_text(std::string(data.begin(), data.end()));
             }
@@ -53,15 +53,14 @@ TEST(Rfc6455Connection, FragmentedTextEcho) {
             cli.send_text("Hello ", false);
             cli.send_continuation("World", true);
         });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode op) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::TEXT) {
                 received = std::string(data.begin(), data.end());
                 cli.close();
                 done = true;
             }
         });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             done = true;
         } else {
@@ -92,8 +91,7 @@ TEST(Rfc6455Connection, ServerPingGetsPong) {
     std::thread t([&]() {
         client cli;
         cli.set_on_open([&]() {});
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (!ec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             cli.close();
@@ -128,13 +126,12 @@ TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
 
     std::thread t([&]() {
         client cli;
-        cli.set_on_close([&](uint16_t code, const std::string&) {
+        cli.set_on_close([&](uint16_t code, const std::string &) {
             close_code = code;
             done = true;
         });
-        cli.set_on_error([&](const std::string&) { done = true; });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        cli.set_on_error([&](const std::string &) { done = true; });
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             done = true;
         } else {
@@ -157,7 +154,7 @@ TEST(Rfc6455Connection, DeflateTextEcho) {
 
     server srv;
     srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+        conn->set_on_message([conn](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::TEXT) {
                 conn->send_text(std::string(data.begin(), data.end()));
             }
@@ -170,15 +167,14 @@ TEST(Rfc6455Connection, DeflateTextEcho) {
         client cli;
         cli.enable_permessage_deflate(true);
         cli.set_on_open([&]() { cli.send_text("Hello compressed"); });
-        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode op) {
+        cli.set_on_message([&](const std::vector<uint8_t> &data, frame::opcode op) {
             if (op == frame::opcode::TEXT) {
                 received = std::string(data.begin(), data.end());
                 cli.close();
                 done = true;
             }
         });
-        const std::error_code ec =
-            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+        const std::error_code ec = cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
         if (ec) {
             done = true;
         } else {

@@ -1,18 +1,18 @@
 // bench_masking.cpp — RFC 6455 mask/unmask throughput
 
 #include "bench_common.hpp"
-#include <wscpp/frame/parser.hpp>
-#include <wscpp/frame/builder.hpp>
 #include <array>
 #include <cstdio>
 #include <vector>
+#include <wscpp/frame/builder.hpp>
+#include <wscpp/frame/parser.hpp>
 
 using namespace wscpp;
 using namespace wscpp::bench;
 
 namespace {
 
-void mask_payload(std::vector<uint8_t>& data, const std::array<uint8_t, 4>& key) {
+void mask_payload(std::vector<uint8_t> &data, const std::array<uint8_t, 4> &key) {
     for (std::size_t i = 0; i < data.size(); ++i) {
         data[i] ^= key[i % 4];
     }
@@ -61,8 +61,7 @@ int main() {
     const clock::time_point roundtrip_end = clock::now();
 
     const double rt_sec = elapsed_sec(roundtrip_start, roundtrip_end);
-    print_throughput("masked_build_parse", static_cast<double>(payload_size * 50),
-                     rt_sec, 50);
+    print_throughput("masked_build_parse", static_cast<double>(payload_size * 50), rt_sec, 50);
 
     return 0;
 }

@@ -1,11 +1,11 @@
 // bench_libwebsockets_roundtrip.cpp — echo latency comparison (libwebsockets 4.3.x)
 
 #include "../bench_util.hpp"
-#include <libwebsockets.h>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <libwebsockets.h>
 #include <string>
 #include <thread>
 #include <vector>
@@ -24,87 +24,85 @@ struct bench_state {
     std::vector<double> latencies_ms;
     std::vector<clock::time_point> send_times;
     std::atomic<bool> done;
-    struct lws* client_wsi;
+    struct lws *client_wsi;
 };
 
-static int callback_server(struct lws* wsi, enum lws_callback_reasons reason,
-                           void* /*user*/, void* in, size_t len) {
+static int callback_server(struct lws *wsi, enum lws_callback_reasons reason, void * /*user*/,
+                           void *in, size_t len) {
     switch (reason) {
-        case LWS_CALLBACK_RECEIVE: {
-            unsigned char buf[LWS_PRE + 256];
-            if (len > sizeof(buf) - LWS_PRE) {
-                len = sizeof(buf) - LWS_PRE;
-            }
-            std::memcpy(buf + LWS_PRE, in, len);
-            lws_write(wsi, buf + LWS_PRE, len, LWS_WRITE_TEXT);
-            break;
+    case LWS_CALLBACK_RECEIVE: {
+        unsigned char buf[LWS_PRE + 256];
+        if (len > sizeof(buf) - LWS_PRE) {
+            len = sizeof(buf) - LWS_PRE;
         }
-        default:
-            break;
+        std::memcpy(buf + LWS_PRE, in, len);
+        lws_write(wsi, buf + LWS_PRE, len, LWS_WRITE_TEXT);
+        break;
+    }
+    default:
+        break;
     }
     return 0;
 }
 
-static int callback_client(struct lws* wsi, enum lws_callback_reasons reason,
-                           void* /*user*/, void* in, size_t len) {
-    bench_state* st =
-        static_cast<bench_state*>(lws_context_user(lws_get_context(wsi)));
+static int callback_client(struct lws *wsi, enum lws_callback_reasons reason, void * /*user*/,
+                           void *in, size_t len) {
+    bench_state *st = static_cast<bench_state *>(lws_context_user(lws_get_context(wsi)));
 
     switch (reason) {
-        case LWS_CALLBACK_CLIENT_ESTABLISHED:
-            st->client_wsi = wsi;
-            lws_callback_on_writable(wsi);
-            break;
+    case LWS_CALLBACK_CLIENT_ESTABLISHED:
+        st->client_wsi = wsi;
+        lws_callback_on_writable(wsi);
+        break;
 
-        case LWS_CALLBACK_CLIENT_WRITEABLE: {
-            if (st->in_flight >= 0) {
-                break;
-            }
-            if (st->next_to_send >= st->samples) {
-                st->done = true;
-                break;
-            }
-            char msg[32];
-            std::snprintf(msg, sizeof(msg), "ping-%d", st->next_to_send);
-            const size_t mlen = std::strlen(msg);
-            unsigned char buf[LWS_PRE + 32];
-            std::memcpy(buf + LWS_PRE, msg, mlen);
-            st->send_times[static_cast<std::size_t>(st->next_to_send)] = clock::now();
-            st->in_flight = st->next_to_send;
-            ++st->next_to_send;
-            if (lws_write(wsi, buf + LWS_PRE, mlen, LWS_WRITE_TEXT) < 0) {
-                st->done = true;
-            }
+    case LWS_CALLBACK_CLIENT_WRITEABLE: {
+        if (st->in_flight >= 0) {
             break;
         }
-
-        case LWS_CALLBACK_CLIENT_RECEIVE: {
-            (void)in;
-            (void)len;
-            if (st->in_flight >= 0) {
-                const double ms = elapsed_sec(
-                    st->send_times[static_cast<std::size_t>(st->in_flight)],
-                    clock::now()) *
-                                  1000.0;
-                st->latencies_ms.push_back(ms);
-                st->in_flight = -1;
-            }
-            if (st->next_to_send >= st->samples &&
-                static_cast<int>(st->latencies_ms.size()) >= st->samples) {
-                st->done = true;
-            } else {
-                lws_callback_on_writable(wsi);
-            }
-            break;
-        }
-
-        case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-        case LWS_CALLBACK_CLIENT_CLOSED:
+        if (st->next_to_send >= st->samples) {
             st->done = true;
             break;
+        }
+        char msg[32];
+        std::snprintf(msg, sizeof(msg), "ping-%d", st->next_to_send);
+        const size_t mlen = std::strlen(msg);
+        unsigned char buf[LWS_PRE + 32];
+        std::memcpy(buf + LWS_PRE, msg, mlen);
+        st->send_times[static_cast<std::size_t>(st->next_to_send)] = clock::now();
+        st->in_flight = st->next_to_send;
+        ++st->next_to_send;
+        if (lws_write(wsi, buf + LWS_PRE, mlen, LWS_WRITE_TEXT) < 0) {
+            st->done = true;
+        }
+        break;
+    }
 
-        default:
-            break;
+    case LWS_CALLBACK_CLIENT_RECEIVE: {
+        (void)in;
+        (void)len;
+        if (st->in_flight >= 0) {
+            const double ms =
+                elapsed_sec(st->send_times[static_cast<std::size_t>(st->in_flight)], clock::now()) *
+                1000.0;
+            st->latencies_ms.push_back(ms);
+            st->in_flight = -1;
+        }
+        if (st->next_to_send >= st->samples &&
+            static_cast<int>(st->latencies_ms.size()) >= st->samples) {
+            st->done = true;
+        } else {
+            lws_callback_on_writable(wsi);
+        }
+        break;
+    }
+
+    case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+    case LWS_CALLBACK_CLIENT_CLOSED:
+        st->done = true;
+        break;
+
+    default:
+        break;
     }
     return 0;
 }
@@ -135,7 +133,7 @@ int main() {
         info.protocols = kServerProtocols;
         info.options = LWS_SERVER_OPTION_VALIDATE_UTF8;
 
-        struct lws_context* ctx = lws_create_context(&info);
+        struct lws_context *ctx = lws_create_context(&info);
         if (!ctx) {
             return;
         }
@@ -163,7 +161,7 @@ int main() {
     cinfo.user = &state;
     cinfo.fd_limit_per_thread = 4;
 
-    struct lws_context* client_ctx = lws_create_context(&cinfo);
+    struct lws_context *client_ctx = lws_create_context(&cinfo);
     if (!client_ctx) {
         server_stop = true;
         server_thread.join();
@@ -197,8 +195,8 @@ int main() {
     server_stop = true;
     server_thread.join();
 
-    std::printf("libwebsockets roundtrip (%zu samples, port %u)\n",
-                state.latencies_ms.size(), port);
+    std::printf("libwebsockets roundtrip (%zu samples, port %u)\n", state.latencies_ms.size(),
+                port);
     print_latency("echo_latency", state.latencies_ms);
 
     return state.latencies_ms.size() == static_cast<std::size_t>(kSamples) ? 0 : 1;

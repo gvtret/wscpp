@@ -17,7 +17,7 @@
 namespace wscpp {
 namespace bench {
 
-inline const char* transport_label() {
+inline const char *transport_label() {
 #if WSCPP_USE_ASIO
     return "asio";
 #else
@@ -25,11 +25,11 @@ inline const char* transport_label() {
 #endif
 }
 
-inline void print_banner(const char* target) {
+inline void print_banner(const char *target) {
     std::printf("=== %s (wscpp transport: %s) ===\n", target, transport_label());
 }
 
-inline void print_compare_banner(const char* target) {
+inline void print_compare_banner(const char *target) {
     std::printf("=== %s ===\n", target);
 }
 
@@ -59,12 +59,12 @@ inline uint16_t pick_free_port() {
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     addr.sin_port = 0;
-    if (::bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
+    if (::bind(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
         ::close(fd);
         return 0;
     }
     socklen_t len = sizeof(addr);
-    if (::getsockname(fd, reinterpret_cast<sockaddr*>(&addr), &len) != 0) {
+    if (::getsockname(fd, reinterpret_cast<sockaddr *>(&addr), &len) != 0) {
         ::close(fd);
         return 0;
     }

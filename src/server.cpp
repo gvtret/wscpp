@@ -1,7 +1,7 @@
-#include <wscpp/server.hpp>
+#include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/handshake.hpp>
-#include <wscpp/detail/make_unique.hpp>
+#include <wscpp/server.hpp>
 #if WSCPP_ENABLE_DEFLATE
 #include <wscpp/extensions/permessage_deflate.hpp>
 #endif
@@ -9,8 +9,8 @@
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
-#include <poll.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
@@ -28,12 +28,14 @@ namespace {
 #if !WSCPP_USE_ASIO
 
 class linux_acceptor {
-public:
+  public:
     linux_acceptor() : fd_(-1) {}
 
-    ~linux_acceptor() { close(); }
+    ~linux_acceptor() {
+        close();
+    }
 
-    std::error_code listen_on(const std::string& host, std::uint16_t port) {
+    std::error_code listen_on(const std::string &host, std::uint16_t port) {
         close();
         fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
         if (fd_ < 0) {
@@ -58,7 +60,7 @@ public:
             return make_error_code(errc::invalid_address);
         }
 
-        if (::bind(fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
+        if (::bind(fd_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
             const std::error_code ec(errno, std::system_category());
             close();
             return ec;
@@ -71,7 +73,7 @@ public:
         return std::error_code();
     }
 
-    std::error_code accept_one(int& client_fd) {
+    std::error_code accept_one(int &client_fd) {
         client_fd = ::accept(fd_, nullptr, nullptr);
         if (client_fd < 0) {
             return std::error_code(errno, std::system_category());
@@ -86,11 +88,15 @@ public:
         }
     }
 
-    bool is_open() const { return fd_ >= 0; }
+    bool is_open() const {
+        return fd_ >= 0;
+    }
 
-    int native_fd() const { return fd_; }
+    int native_fd() const {
+        return fd_;
+    }
 
-private:
+  private:
     int fd_;
 };
 
@@ -99,20 +105,17 @@ private:
 } // namespace
 
 class server::impl {
-public:
+  public:
     impl()
         : io_context_(),
 #if WSCPP_USE_ASIO
           acceptor_(io_context_),
 #endif
-          is_running_(false),
-          ssl_enabled_(false) {
+          is_running_(false), ssl_enabled_(false) {
 #if WSCPP_USE_ASIO
         ssl_context_ = std::make_shared<net::ssl_context>(asio::ssl::context::tlsv12_server);
-        ssl_context_->set_options(
-            asio::ssl::context::default_workarounds |
-            asio::ssl::context::no_sslv2 |
-            asio::ssl::context::no_sslv3);
+        ssl_context_->set_options(asio::ssl::context::default_workarounds |
+                                  asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3);
 #else
         const std::error_code ec =
             net::ssl_context::make(net::ssl_context::role::server, ssl_context_);
@@ -128,7 +131,7 @@ public:
         return listen("0.0.0.0", port);
     }
 
-    std::error_code listen(const std::string& host, uint16_t port) {
+    std::error_code listen(const std::string &host, uint16_t port) {
 #if WSCPP_USE_ASIO
         asio::error_code ec;
         const asio::ip::address addr = asio::ip::make_address(host, ec);
@@ -172,10 +175,18 @@ public:
         }
     }
 
-    void set_on_connection(connection_callback cb) { on_connection_ = cb; }
-    void set_on_message(message_callback cb) { on_message_ = cb; }
-    void set_on_close(close_callback cb) { on_close_ = cb; }
-    void set_on_error(error_callback cb) { on_error_ = cb; }
+    void set_on_connection(connection_callback cb) {
+        on_connection_ = cb;
+    }
+    void set_on_message(message_callback cb) {
+        on_message_ = cb;
+    }
+    void set_on_close(close_callback cb) {
+        on_close_ = cb;
+    }
+    void set_on_error(error_callback cb) {
+        on_error_ = cb;
+    }
 
     std::error_code start() {
         if (!is_running_.load()) {
@@ -226,13 +237,15 @@ public:
 #endif
     }
 
-    bool is_running() const { return is_running_.load(); }
+    bool is_running() const {
+        return is_running_.load();
+    }
 
-private:
+  private:
 #if WSCPP_USE_ASIO
     void start_accept() {
         std::shared_ptr<net::tcp::socket> socket(new net::tcp::socket(io_context_));
-        acceptor_.async_accept(*socket, [this, socket](const asio::error_code& ec) {
+        acceptor_.async_accept(*socket, [this, socket](const asio::error_code &ec) {
             if (!ec) {
                 handle_accept(std::move(*socket));
             }
@@ -271,16 +284,13 @@ private:
                 if (!is_running_.load()) {
                     break;
                 }
-                if (ec == std::errc::operation_canceled ||
-                    ec == std::errc::bad_file_descriptor ||
+                if (ec == std::errc::operation_canceled || ec == std::errc::bad_file_descriptor ||
                     ec == std::errc::invalid_argument) {
                     break;
                 }
                 continue;
             }
-            std::thread worker([this, client_fd]() {
-                handle_accept(net::tcp_socket(client_fd));
-            });
+            std::thread worker([this, client_fd]() { handle_accept(net::tcp_socket(client_fd)); });
             std::lock_guard<std::mutex> lock(workers_mutex_);
             workers_.push_back(std::move(worker));
         }
@@ -291,27 +301,29 @@ private:
         std::shared_ptr<connection> conn(new connection(io_context_));
         register_pending(conn);
         struct pending_guard {
-            impl* self;
-            connection* conn;
-            ~pending_guard() { self->unregister_pending(conn); }
+            impl *self;
+            connection *conn;
+            ~pending_guard() {
+                self->unregister_pending(conn);
+            }
         } guard{this, conn.get()};
 
         conn->set_role(connection_role::server);
 
-        conn->set_on_message([this, conn](const std::vector<uint8_t>& data, frame::opcode op) {
+        conn->set_on_message([this, conn](const std::vector<uint8_t> &data, frame::opcode op) {
             if (on_message_) {
                 on_message_(conn, data, op);
             }
         });
 
-        conn->set_on_close([this, conn](uint16_t code, const std::string& reason) {
+        conn->set_on_close([this, conn](uint16_t code, const std::string &reason) {
             if (on_close_) {
                 on_close_(conn, code, reason);
             }
             remove_connection(conn);
         });
 
-        conn->set_on_error([this, conn](const std::string& error) {
+        conn->set_on_error([this, conn](const std::string &error) {
             if (on_error_) {
                 on_error_(conn, error);
             }
@@ -377,19 +389,16 @@ private:
             return false;
         }
 
-        const std::string accept =
-            handshake::compute_accept(headers["sec-websocket-key"]);
+        const std::string accept = handshake::compute_accept(headers["sec-websocket-key"]);
 #if WSCPP_ENABLE_DEFLATE
         std::string extensions;
         const std::map<std::string, std::string>::const_iterator ext =
             headers.find("sec-websocket-extensions");
-        if (ext != headers.end() &&
-            extensions::header_offers_permessage_deflate(ext->second)) {
+        if (ext != headers.end() && extensions::header_offers_permessage_deflate(ext->second)) {
             conn->set_permessage_deflate(true);
             extensions = extensions::permessage_deflate_offer();
         }
-        const std::string response =
-            handshake::build_server_response(accept, extensions);
+        const std::string response = handshake::build_server_response(accept, extensions);
 #else
         const std::string response = handshake::build_server_response(accept);
 #endif
@@ -413,20 +422,19 @@ private:
         connections_.erase(conn.get());
     }
 
-    void register_pending(const std::shared_ptr<connection>& conn) {
+    void register_pending(const std::shared_ptr<connection> &conn) {
         std::lock_guard<std::mutex> lock(pending_mutex_);
         pending_handshakes_.push_back(conn);
     }
 
-    void unregister_pending(connection* conn) {
+    void unregister_pending(connection *conn) {
         std::lock_guard<std::mutex> lock(pending_mutex_);
-        pending_handshakes_.erase(
-            std::remove_if(pending_handshakes_.begin(),
-                           pending_handshakes_.end(),
-                           [conn](const std::shared_ptr<connection>& c) {
-                               return c.get() == conn;
-                           }),
-            pending_handshakes_.end());
+        pending_handshakes_.erase(std::remove_if(pending_handshakes_.begin(),
+                                                 pending_handshakes_.end(),
+                                                 [conn](const std::shared_ptr<connection> &c) {
+                                                     return c.get() == conn;
+                                                 }),
+                                  pending_handshakes_.end());
     }
 
     void shutdown_all_sockets() {
@@ -443,8 +451,7 @@ private:
         std::vector<std::shared_ptr<connection>> active;
         {
             std::lock_guard<std::mutex> lock(connections_mutex_);
-            for (std::map<void*, std::shared_ptr<connection>>::iterator it =
-                     connections_.begin();
+            for (std::map<void *, std::shared_ptr<connection>>::iterator it = connections_.begin();
                  it != connections_.end(); ++it) {
                 active.push_back(it->second);
             }
@@ -479,7 +486,7 @@ private:
     std::atomic<bool> is_running_;
     bool ssl_enabled_;
     std::shared_ptr<ssl_context> ssl_context_;
-    std::map<void*, std::shared_ptr<connection>> connections_;
+    std::map<void *, std::shared_ptr<connection>> connections_;
     std::mutex connections_mutex_;
     std::vector<std::shared_ptr<connection>> pending_handshakes_;
     std::mutex pending_mutex_;
@@ -494,8 +501,7 @@ private:
     std::thread thread_;
 };
 
-server::server()
-    : pimpl_(detail::make_unique<impl>()) {}
+server::server() : pimpl_(detail::make_unique<impl>()) {}
 
 server::~server() = default;
 
@@ -503,7 +509,7 @@ std::error_code server::listen(uint16_t port) {
     return pimpl_->listen(port);
 }
 
-std::error_code server::listen(const std::string& host, uint16_t port) {
+std::error_code server::listen(const std::string &host, uint16_t port) {
     return pimpl_->listen(host, port);
 }
 

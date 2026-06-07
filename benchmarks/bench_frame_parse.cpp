@@ -1,11 +1,11 @@
 // bench_frame_parse.cpp — parse/build throughput for 1 MiB binary payload
 
 #include "bench_common.hpp"
-#include <wscpp/frame/parser.hpp>
-#include <wscpp/frame/builder.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <vector>
+#include <wscpp/frame/builder.hpp>
+#include <wscpp/frame/parser.hpp>
 
 using namespace wscpp;
 using namespace wscpp::bench;
@@ -32,14 +32,13 @@ int main() {
     const clock::time_point build_end = clock::now();
 
     const double build_sec = elapsed_sec(build_start, build_end);
-    print_throughput("frame_build", static_cast<double>(payload_size * iterations),
-                     build_sec, iterations);
+    print_throughput("frame_build", static_cast<double>(payload_size * iterations), build_sec,
+                     iterations);
 
     const clock::time_point parse_start = clock::now();
     for (int i = 0; i < iterations; ++i) {
         parser.reset();
-        const frame::parse_result result =
-            parser.parse(frame.data(), frame.size(), header, parsed);
+        const frame::parse_result result = parser.parse(frame.data(), frame.size(), header, parsed);
         if (result != frame::parse_result::COMPLETE || parsed.size() != payload_size) {
             std::fprintf(stderr, "parse failed\n");
             return 1;
@@ -48,8 +47,8 @@ int main() {
     const clock::time_point parse_end = clock::now();
 
     const double parse_sec = elapsed_sec(parse_start, parse_end);
-    print_throughput("frame_parse", static_cast<double>(payload_size * iterations),
-                     parse_sec, iterations);
+    print_throughput("frame_parse", static_cast<double>(payload_size * iterations), parse_sec,
+                     iterations);
 
     return 0;
 }

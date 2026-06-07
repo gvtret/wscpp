@@ -2,11 +2,11 @@
 
 #include "../bench_util.hpp"
 #include "easywsclient.hpp"
-#include <wscpp/server.hpp>
 #include <cstdio>
 #include <string>
 #include <thread>
 #include <vector>
+#include <wscpp/server.hpp>
 
 using namespace wscpp;
 using namespace wscpp::bench;

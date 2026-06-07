@@ -26,7 +26,7 @@ enum class errc {
     host_not_found,
 };
 
-const std::error_category& error_category();
+const std::error_category &error_category();
 
 inline std::error_code make_error_code(errc e) {
     return std::error_code(static_cast<int>(e), error_category());
@@ -36,8 +36,7 @@ inline std::error_code make_error_code(errc e) {
 
 namespace std {
 
-template <>
-struct is_error_code_enum<wscpp::errc> : true_type {};
+template <> struct is_error_code_enum<wscpp::errc> : true_type {};
 
 } // namespace std
 

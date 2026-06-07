@@ -8,7 +8,7 @@
 namespace wscpp {
 namespace detail {
 
-inline bool is_valid_utf8(const uint8_t* data, std::size_t len) {
+inline bool is_valid_utf8(const uint8_t *data, std::size_t len) {
     std::size_t i = 0;
     while (i < len) {
         const uint8_t c = data[i];
@@ -65,7 +65,7 @@ inline bool is_valid_utf8(const uint8_t* data, std::size_t len) {
     return true;
 }
 
-inline bool is_valid_utf8(const std::vector<uint8_t>& data) {
+inline bool is_valid_utf8(const std::vector<uint8_t> &data) {
     if (data.empty()) {
         return true;
     }
