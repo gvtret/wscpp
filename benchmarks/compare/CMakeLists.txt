@@ -84,6 +84,47 @@ if(WSCPP_COMPARE_LIBWEBSOCKETS)
     endif()
 endif()
 
+# --- Boost.Beast (system Boost) ---
+option(WSCPP_COMPARE_BEAST "Build Boost.Beast compare benchmark" ON)
+if(WSCPP_COMPARE_BEAST)
+    find_package(Boost 1.70 COMPONENTS system QUIET)
+    if(Boost_FOUND)
+        add_executable(bench_beast_roundtrip bench_beast_roundtrip.cpp)
+        target_include_directories(bench_beast_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+        target_link_libraries(bench_beast_roundtrip PRIVATE Boost::system Threads::Threads)
+        list(APPEND WSCPP_COMPARE_TARGETS bench_beast_roundtrip)
+    else()
+        message(STATUS "Boost (system) not found; skip bench_beast_roundtrip")
+    endif()
+endif()
+
+# --- Simple-WebSocket-Server (FetchContent + standalone ASIO) ---
+option(WSCPP_COMPARE_SWS "Build Simple-WebSocket-Server compare benchmark" ON)
+if(WSCPP_COMPARE_SWS)
+    FetchContent_Declare(
+        simple_websocket_server
+        GIT_REPOSITORY https://gitlab.com/eidheim/Simple-WebSocket-Server.git
+        GIT_TAG 0e1cf67ef0247545386102187af79269da431495
+    )
+    FetchContent_GetProperties(simple_websocket_server)
+    if(NOT simple_websocket_server_POPULATED)
+        FetchContent_Populate(simple_websocket_server)
+    endif()
+
+    add_library(wscpp_sws INTERFACE)
+    target_include_directories(wscpp_sws INTERFACE
+        ${simple_websocket_server_SOURCE_DIR}
+        ${asio_SOURCE_DIR}/asio/include
+    )
+    target_compile_definitions(wscpp_sws INTERFACE ASIO_STANDALONE)
+    target_link_libraries(wscpp_sws INTERFACE Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
+
+    add_executable(bench_sws_roundtrip bench_sws_roundtrip.cpp)
+    target_include_directories(bench_sws_roundtrip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    target_link_libraries(bench_sws_roundtrip PRIVATE wscpp_sws)
+    list(APPEND WSCPP_COMPARE_TARGETS bench_sws_roundtrip)
+endif()
+
 add_custom_target(compare_benchmarks
     DEPENDS ${WSCPP_COMPARE_TARGETS}
     COMMENT "Build all comparative WebSocket benchmarks"

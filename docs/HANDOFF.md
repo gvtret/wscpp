@@ -23,6 +23,12 @@
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
 **Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
 
+## 2026-06-07 — F2: Beast + Simple-WebSocket-Server compare benches
+
+**Done:** `bench_beast_roundtrip` (Boost 1.88, sync echo); `bench_sws_roundtrip` (GitLab SWS `0e1cf67`, standalone ASIO). ANALYSIS.md updated with 7-library numbers. 94/94 tests pass.
+**State:** `main`, VERSION 1.1.0.
+**Next:** Optional bench hardening (TLS compare, concurrent connections).
+
 ## 2026-06-07 — RFC 7692 permessage-deflate (v1.1.0)
 
 **Done:** zlib codec, handshake negotiation, RSV1 on connection; `client::enable_permessage_deflate()`; 3 unit + 1 integration test. Release v1.1.0 (`166b43a`, tag `v1.1.0`). 94/94 tests pass.

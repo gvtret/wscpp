@@ -4,14 +4,14 @@ Comparative catalog and benchmark results for **wscpp** (v1.1.0). Numbers below 
 
 ## Executive summary
 
-| | wscpp | websocketpp | IXWebSocket | libwebsockets | easywsclient |
-|---|-------|-------------|-------------|---------------|--------------|
-| **Role** | client + server | client + server | client + server | client + server | client only |
-| **C++11, no Boost** | yes | yes (needs ASIO) | yes | C API | yes |
-| **Echo p50 (localhost)** | 0.26 ms | 0.26 ms | 0.24 ms | 0.27 ms | — |
-| **Echo / connect p99** | 0.34 ms | 0.61 ms | 0.37 ms | 0.40 ms | 1.78 ms connect |
-| **64 KiB throughput** | 84 MB/s | — | 66 MB/s | — | — |
-| **Bench binary size** | 379 KB | 708 KB | 485 KB | 131 KB* | 370 KB |
+| | wscpp | websocketpp | IXWebSocket | libwebsockets | Beast | SWS | easywsclient |
+|---|-------|-------------|-------------|---------------|-------|-----|--------------|
+| **Role** | client + server | client + server | client + server | client + server | client + server | client + server | client only |
+| **C++11, no Boost** | yes | yes (needs ASIO) | yes | C API | no (Boost) | yes (ASIO) | yes |
+| **Echo p50 (localhost)** | 0.26 ms | 0.26 ms | 0.24 ms | 0.27 ms | 0.25 ms | 0.27 ms | — |
+| **Echo / connect p99** | 0.34 ms | 0.61 ms | 0.37 ms | 0.40 ms | 0.31 ms | 0.42 ms | 1.78 ms connect |
+| **64 KiB throughput** | 84 MB/s | — | 66 MB/s | — | 62 MB/s | — | — |
+| **Bench binary size** | 379 KB | 708 KB | 485 KB | 131 KB* | 664 KB | 675 KB | 370 KB |
 
 On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the same latency band. wscpp offers the smallest **statically linked** full client+server footprint among measured C++ stacks.
 
@@ -47,7 +47,7 @@ On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the
 | 64 KiB binary throughput | `bench_roundtrip`, `bench_ixwebsocket_roundtrip` | 100 iterations |
 | Connect latency | `bench_easywsclient_connect` | TCP + WS handshake, client-only |
 
-**Limitations:** localhost only; single machine; no concurrent connections; no TLS in compare suite; Beast / Simple-WebSocket-Server require manual setup; libwebsockets bench needs `libwebsockets-dev` (optional CMake target).
+**Limitations:** localhost only; single machine; no concurrent connections; no TLS in compare suite; libwebsockets bench needs `libwebsockets-dev`; Beast bench needs `libboost-system-dev` (optional CMake target).
 
 **Environment (2026-06-07):** Linux/WSL2, Release, GCC 15, `127.0.0.1`, no TLS in compare benches.
 
@@ -124,6 +124,8 @@ On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the
 | **websocketpp** 0.8.2 | 0.26 ms | 0.61 ms | — | 708 KB |
 | **IXWebSocket** 11.4.6 | 0.24 ms | 0.37 ms | 66 MB/s | 485 KB |
 | **libwebsockets** 4.3.5 | 0.27 ms | 0.40 ms | — | 131 KB* |
+| **Boost.Beast** (Boost 1.88) | 0.25 ms | 0.31 ms | 62 MB/s | 664 KB |
+| **Simple-WebSocket-Server** | 0.27 ms | 0.42 ms | — | 675 KB |
 | **easywsclient** (connect) | 1.16 ms | 1.78 ms | — | 370 KB |
 
 \* libwebsockets bench binary links the system shared library (`libwebsockets.so`); size is not directly comparable to statically linked peers.
@@ -149,11 +151,13 @@ cmake --build build --target benchmarks compare_benchmarks
 ./build/bin/bench_ixwebsocket_roundtrip
 ./build/bin/bench_libwebsockets_roundtrip
 ./build/bin/bench_easywsclient_connect
+./build/bin/bench_beast_roundtrip
+./build/bin/bench_sws_roundtrip
 ./build/bin/bench_frame_parse
 ./build/bin/bench_masking
 ```
 
-Manual compare targets (Beast, Simple-WebSocket-Server): `benchmarks/compare/README.md`.
+Compare targets need optional system packages: `libwebsockets-dev`, `libboost-system-dev`.
 
 ## Recommendations
 
@@ -174,4 +178,4 @@ Manual compare targets (Beast, Simple-WebSocket-Server): `benchmarks/compare/REA
 | 2026-06-07 | Initial catalog (F0) |
 | 2026-06-07 | Post-RFC gate numbers; wscpp + websocketpp |
 | 2026-06-07 | UTF-8 §8.1; v1.0.2 baseline |
-| 2026-06-07 | F2: libwebsockets 4.3.5 echo bench (pkg-config) |
+| 2026-06-07 | F2: Boost.Beast + Simple-WebSocket-Server echo benches |
