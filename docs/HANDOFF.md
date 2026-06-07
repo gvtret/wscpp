@@ -25,9 +25,9 @@
 
 ## 2026-06-07 — RFC 7692 permessage-deflate (v1.1.0)
 
-**Done:** zlib codec, handshake negotiation, RSV1 on connection; `client::enable_permessage_deflate()`; 3 unit + 1 integration test. Release v1.1.0. 94/94 tests pass.
+**Done:** zlib codec, handshake negotiation, RSV1 on connection; `client::enable_permessage_deflate()`; 3 unit + 1 integration test. Release v1.1.0 (`166b43a`, tag `v1.1.0`). 94/94 tests pass.
 **State:** `main`, VERSION 1.1.0, tag `v1.1.0`.
-**Next:** Optional Beast/SWS manual benches; further extension tuning (window bits).
+**Next:** Optional Beast/SWS manual benches; CI zlib dep (done in follow-up commit).
 
 ## 2026-06-07 — F2: libwebsockets compare bench
 
