@@ -1,49 +1,52 @@
 # wscpp
 
-Легковесный WebSocket-стек на C++11 и выше с поддержкой TLS.
+Lightweight WebSocket stack for **C++11** with optional TLS (`wss://`).
 
-## Возможности
+[![CI](https://gitverse.ru/project/wscpp/badges/main/pipeline.svg)](https://gitverse.ru/project/wscpp)
 
-- C++11 и выше
-- standalone ASIO для сетевых операций
-- OpenSSL для TLS/SSL
-- CMake сборка
-- Полная документация
-- Примеры клиента и сервера
+## Features
 
-## Установка
+- C++11, no Boost required (standalone ASIO 1.20 via FetchContent)
+- OpenSSL TLS for secure WebSocket
+- Client and server with callback-based API
+- RFC 6455 frame layer with regression test vectors
+- CMake build, SemVer versioning, Doxygen API docs
 
-### Требования
+**Version:** 0.1.0 (pre-1.0 development)
 
-- C++11 совместимый компилятор (GCC 4.8+, Clang 3.3+, MSVC 2015+)
-- CMake 3.10+
-- OpenSSL 1.0.1+
-- standalone ASIO 1.18+
-
-### Сборка из исходников
+## Quick build
 
 ```bash
 git clone https://gitverse.ru/project/wscpp.git
 cd wscpp
-mkdir build && cd build
-cmake ..
-make
-make install
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+cd build && ctest --output-on-failure
 ```
 
-## Примеры
+## Documentation
 
-Смотрите `examples/` для примеров использования.
+| Document | Description |
+|----------|-------------|
+| [User guide](docs/README.md) | Install, quick start, FAQ |
+| [Developer guide](docs/DEVELOPER.md) | Architecture, testing, releases |
+| [Examples](examples/README.md) | ws:// and wss:// echo programs |
+| [Analysis](ANALYSIS.md) | C++11 WebSocket library comparison |
+| [Changelog](CHANGELOG.md) | Release history |
+| API reference | `cmake --build build --target docs` → `build/docs/html/index.html` |
 
-## Лицензия
+## Examples
 
-MIT License - см. файл LICENSE для подробной информации.
+```bash
+# Terminal 1
+./build/bin/wscpp_example_server 8080
 
-## Документация
+# Terminal 2
+./build/bin/wscpp_example_client ws://127.0.0.1:8080/
+```
 
-- [Пользовательская документация](docs/README.md)
-- [Документация разработчика](docs/DEVELOPER.md)
+See [examples/README.md](examples/README.md) for TLS (wss://) setup.
 
-## Сравнение с другими библиотеками
+## License
 
-Смотрите `ANALYSIS.md` для сравнительного анализа с другими библиотеками.
+MIT — see [LICENSE](LICENSE).

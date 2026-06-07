@@ -14,9 +14,18 @@
 
 - `src/` — исходный код библиотеки
 - `include/` — заголовочные файлы
-- `tests/` — тесты
-- `examples/` — примеры
-- `docs/` — документация
+- `tests/` — unit, integration, regression tests
+- `examples/` — ws:// and wss:// examples
+- `docs/` — user guide, developer guide, HANDOFF log
+- `benchmarks/` — performance harness (optional build)
+
+## Работа по плану разработки
+
+При выполнении атомарных шагов плана:
+
+1. `cmake --build build && ctest`
+2. Append запись в `docs/HANDOFF.md`
+3. Отдельный git commit с сообщением на английском
 
 ## Стандарты кода
 
