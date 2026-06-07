@@ -80,6 +80,7 @@ add_subdirectory(src)
 
 # Add tests if enabled
 option(WSCPP_BUILD_TESTS "Build tests" ON)
+option(WSCPP_ENABLE_STRESS_TESTS "Build stress integration tests" OFF)
 if(WSCPP_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
@@ -89,6 +90,23 @@ endif()
 option(WSCPP_BUILD_EXAMPLES "Build examples" ON)
 if(WSCPP_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+# Benchmarks (scaffold)
+option(WSCPP_BUILD_BENCHMARKS "Build benchmarks" OFF)
+if(WSCPP_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
+endif()
+
+# API documentation (Doxygen)
+option(WSCPP_BUILD_DOCS "Build API documentation with Doxygen" ON)
+if(WSCPP_BUILD_DOCS)
+    find_package(Doxygen QUIET)
+    if(DOXYGEN_FOUND)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Docs.cmake)
+    else()
+        message(STATUS "Doxygen not found — docs target disabled")
+    endif()
 endif()
 
 # Configure pkg-config
