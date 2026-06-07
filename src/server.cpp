@@ -138,7 +138,21 @@ private:
             }
         });
 
-        if (!perform_handshake(conn, socket)) {
+        conn->adopt(std::move(*socket));
+
+        if (ssl_enabled_ && ssl_context_) {
+            try {
+                conn->socket().enable_ssl(ssl_context_);
+                conn->socket().ssl_handshake(false);
+            } catch (const std::exception& ex) {
+                if (on_error_) {
+                    on_error_(conn, ex.what());
+                }
+                return;
+            }
+        }
+
+        if (!perform_handshake(conn)) {
             return;
         }
 
@@ -149,19 +163,10 @@ private:
         add_connection(conn);
     }
 
-    bool perform_handshake(
-        std::shared_ptr<connection> conn,
-        std::shared_ptr<tcp::socket> socket) {
+    bool perform_handshake(std::shared_ptr<connection> conn) {
         try {
             asio::streambuf request_buf;
-            asio::error_code ec;
-            asio::read_until(*socket, request_buf, "\r\n\r\n", ec);
-            if (ec) {
-                if (on_error_) {
-                    on_error_(conn, ec.message());
-                }
-                return false;
-            }
+            conn->socket().read_until(request_buf, "\r\n\r\n");
 
             const std::string raw = streambuf_to_string(request_buf);
             std::string request_line;
@@ -183,9 +188,7 @@ private:
             const std::string accept =
                 handshake::compute_accept(headers["sec-websocket-key"]);
             const std::string response = handshake::build_server_response(accept);
-            asio::write(*socket, asio::buffer(response));
-
-            conn->adopt(std::move(*socket));
+            conn->socket().write(response.data(), response.size());
             return true;
         } catch (const std::exception& ex) {
             if (on_error_) {
