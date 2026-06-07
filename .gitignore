@@ -34,7 +34,7 @@ out/
 # IDE
 .idea/
 .vscode/
-.gigacode/
+.cursor/
 *.sln
 *.vcxproj
 *.pro
