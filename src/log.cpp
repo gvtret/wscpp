@@ -2,13 +2,13 @@
 
 #if WSCPP_ENABLE_LOGGING
 #define SPDLOG_HEADER_ONLY
-#include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #endif
 
-#include <wscpp/detail/log.hpp>
 #include <memory>
 #include <mutex>
+#include <wscpp/detail/log.hpp>
 
 namespace wscpp {
 namespace detail {
