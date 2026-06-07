@@ -8,10 +8,10 @@ Comparative catalog and benchmark results for **wscpp** (v1.1.0). Numbers below 
 |---|---------------|--------------|-------------|-------------|---------------|-------|-----|--------------|
 | **Role** | client + server | client + server | client + server | client + server | client + server | client + server | client + server | client only |
 | **`C++11`, no Boost** | yes | yes (needs ASIO) | yes (needs ASIO) | yes | C API | no (Boost) | yes (ASIO) | yes |
-| **Echo p50 (localhost)** | 0.26 ms | 0.30 ms | 0.31 ms | 0.28 ms | 0.26 ms | 0.25 ms | 0.28 ms | — [b] |
-| **Echo / connect p99** | 0.41 ms | 0.57 ms | 0.59 ms | 0.68 ms | 0.40 ms | 0.32 ms | 0.46 ms | 1.88 ms connect |
-| **64 KiB throughput** | 76 MB/s | 71 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
-| **Bench binary size** | 278 KB | 379 KB | 687 KB | 473 KB | 126 KB* | 668 KB | 675 KB | 370 KB |
+| **Echo p50 (localhost)** | 0.25 ms | 0.28 ms | 0.31 ms | 0.28 ms | 0.26 ms | 0.25 ms | 0.28 ms | — [b] |
+| **Echo / connect p99** | 0.46 ms | 0.51 ms | 0.59 ms | 0.68 ms | 0.40 ms | 0.32 ms | 0.46 ms | 1.88 ms connect |
+| **64 KiB throughput** | 81 MB/s | 76 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
+| **Bench binary size** | 281 KB | 383 KB | 687 KB | 473 KB | 126 KB* | 668 KB | 675 KB | 370 KB |
 
 **Executive summary footnotes:** [a] compare target measures echo only (no 64 KiB loop in `bench_*_roundtrip`). [b] client-only — harness runs connect latency, not echo (`bench_easywsclient_connect`). Full tag list: [Table legend](#table-legend).
 
@@ -134,7 +134,7 @@ Tier 2/3 capability dashes use tags [c]–[e] from [Table legend](#table-legend)
 **Strengths:**
 
 - **`C++11`**-only, no Boost; reproducible builds via FetchContent ASIO or linux-only OpenSSL path
-- Dual transport: linux POSIX (278 KB bench) or ASIO (379 KB bench) vs 473–687 KB peers
+- Dual transport: linux POSIX (281 KB bench) or ASIO (383 KB bench) vs 473–687 KB peers
 - Explicit layering: frame → connection → client|server; all I/O returns `std::error_code`
 - RFC 6455 regression vectors and 90 automated tests in-tree
 
@@ -152,17 +152,17 @@ Measured with the same harness; only CMake flag `WSCPP_USE_ASIO` differs.
 
 | Transport | Echo p50 | Echo p99 | 64 KiB throughput | Binary size |
 |-----------|----------|----------|-------------------|-------------|
-| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.26 ms | 0.41 ms | 76 MB/s | 278 KB |
-| **ASIO** (`WSCPP_USE_ASIO=ON`) | 0.30 ms | 0.57 ms | 71 MB/s | 379 KB |
+| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.25 ms | 0.46 ms | 81 MB/s | 281 KB |
+| **ASIO** (`WSCPP_USE_ASIO=ON`) | 0.28 ms | 0.51 ms | 76 MB/s | 383 KB |
 
-Micro-benchmarks (`bench_frame_parse`, `bench_masking`) are transport-agnostic (frame layer only).
+Micro-benchmarks (`bench_frame_parse`, `bench_masking`) are transport-agnostic (frame layer only). Masking uses word-at-a-time XOR (`detail/mask.hpp`, v1.1.0+).
 
 | Scenario | Throughput |
 |----------|------------|
-| Frame build | ~2.3 GB/s |
-| Frame parse | ~27 GB/s (hot cache) |
-| Mask/unmask XOR | ~2.2 GB/s |
-| Masked build+parse | ~877 MB/s |
+| Frame build | ~10 GB/s |
+| Frame parse | ~18 GB/s |
+| Mask/unmask XOR | ~50 GB/s |
+| Masked build+parse | ~2.2 GB/s |
 
 ### Third-party compare (automated harness, ASIO build tree)
 
@@ -205,7 +205,7 @@ cmake --build build-asio --target run_benchmarks
 
 | Use case | Suggestion |
 |----------|------------|
-| Embedded / minimal deps, **`C++11`** | **wscpp** linux transport (278 KB echo binary, no ASIO) |
+| Embedded / minimal deps, **`C++11`** | **wscpp** linux transport (281 KB echo binary, no ASIO) |
 | Cross-platform ASIO parity | **wscpp** with `WSCPP_USE_ASIO=ON` |
 | No exceptions in app code | **wscpp** (`std::error_code` API) |
 | Client-only, smallest code | **easywsclient** (~600 LOC; blocking) |
@@ -223,3 +223,4 @@ cmake --build build-asio --target run_benchmarks
 | 2026-06-07 | Post-RFC gate numbers; wscpp + websocketpp |
 | 2026-06-07 | UTF-8 §8.1; v1.0.2 baseline |
 | 2026-06-07 | Dual transport benches; `error_code` API; `run_benchmarks_both.sh` |
+| 2026-06-07 | Frame perf: word-at-a-time masking, zero-copy build; updated micro + echo numbers |
