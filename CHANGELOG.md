@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-07
+
+### Added
+- RFC 7692 permessage-deflate extension (zlib); server auto-accepts client offer
+- `client::enable_permessage_deflate()` opt-in; RSV1 compress/decompress on TEXT/BINARY
+- Unit tests (RFC 7692 "Hello" vector) and integration `DeflateTextEcho`
+- CMake option `WSCPP_ENABLE_DEFLATE` (default ON, requires zlib)
+
 ## [1.0.2] - 2026-06-07
 
 ### Added

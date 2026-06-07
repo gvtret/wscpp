@@ -1,7 +1,11 @@
 #include <wscpp/client.hpp>
 #include <wscpp/handshake.hpp>
 #include <wscpp/detail/make_unique.hpp>
+#if WSCPP_ENABLE_DEFLATE
+#include <wscpp/extensions/permessage_deflate.hpp>
+#endif
 #include <asio/streambuf.hpp>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -23,7 +27,12 @@ public:
         : io_context_(),
           connection_(io_context_),
           is_open_(false),
-          is_closing_(false) {
+          is_closing_(false)
+#if WSCPP_ENABLE_DEFLATE
+          ,
+          request_deflate_(false)
+#endif
+    {
         connection_.set_role(connection_role::client);
         ssl_context_ = std::make_shared<asio::ssl::context>(asio::ssl::context::tlsv12_client);
         ssl_context_->set_verify_mode(asio::ssl::verify_none);
@@ -88,6 +97,10 @@ public:
         io_context_.stop();
     }
 
+#if WSCPP_ENABLE_DEFLATE
+    void enable_permessage_deflate(bool enable) { request_deflate_ = enable; }
+#endif
+
 private:
     url_info parse_url(const std::string& url) {
         url_info info;
@@ -122,8 +135,15 @@ private:
 
     void perform_handshake(const url_info& info) {
         const std::string key = handshake::generate_key();
+#if WSCPP_ENABLE_DEFLATE
+        const std::string extensions =
+            request_deflate_ ? extensions::permessage_deflate_offer() : std::string();
+        const std::string request =
+            handshake::build_client_request(info.host, info.port, info.path, key, extensions);
+#else
         const std::string request =
             handshake::build_client_request(info.host, info.port, info.path, key);
+#endif
 
         connection_.socket().write(request.data(), request.size());
 
@@ -131,15 +151,32 @@ private:
         connection_.socket().read_until(response, "\r\n\r\n");
         const std::string response_str = streambuf_to_string(response);
 
-        if (response_str.find("101") == std::string::npos) {
+        std::string status_line;
+        std::map<std::string, std::string> headers;
+        if (!handshake::parse_http_headers(response_str, status_line, headers) ||
+            status_line.find("101") == std::string::npos) {
             throw std::runtime_error("WebSocket handshake failed");
         }
+
+#if WSCPP_ENABLE_DEFLATE
+        if (request_deflate_) {
+            const std::map<std::string, std::string>::const_iterator ext =
+                headers.find("sec-websocket-extensions");
+            if (ext != headers.end() &&
+                extensions::header_offers_permessage_deflate(ext->second)) {
+                connection_.set_permessage_deflate(true);
+            }
+        }
+#endif
     }
 
     asio::io_context io_context_;
     connection_type connection_;
     bool is_open_;
     bool is_closing_;
+#if WSCPP_ENABLE_DEFLATE
+    bool request_deflate_;
+#endif
     std::shared_ptr<asio::ssl::context> ssl_context_;
 };
 
@@ -199,5 +236,11 @@ void client::run() {
 void client::stop() {
     pimpl_->stop();
 }
+
+#if WSCPP_ENABLE_DEFLATE
+void client::enable_permessage_deflate(bool enable) {
+    pimpl_->enable_permessage_deflate(enable);
+}
+#endif
 
 } // namespace wscpp

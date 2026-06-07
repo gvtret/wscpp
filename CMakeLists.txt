@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 # Project name and version
 project(wscpp
-    VERSION 1.0.2
+    VERSION 1.1.0
     DESCRIPTION "Lightweight WebSocket stack for C++11 and above"
     LANGUAGES CXX
 )
@@ -50,7 +50,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Installation directories
 include(GNUInstallDirs)
 
-# Find dependencies
+option(WSCPP_ENABLE_DEFLATE "Enable RFC 7692 permessage-deflate (requires zlib)" ON)
+if(WSCPP_ENABLE_DEFLATE)
+    find_package(ZLIB REQUIRED)
+endif()
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 

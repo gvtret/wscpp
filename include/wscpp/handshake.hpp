@@ -23,16 +23,19 @@ std::string build_client_request(
     const std::string& host,
     const std::string& port,
     const std::string& path,
-    const std::string& key);
+    const std::string& key,
+    const std::string& extensions = std::string());
+
+/** @brief Build HTTP 101 Switching Protocols response. */
+std::string build_server_response(
+    const std::string& accept_key,
+    const std::string& extensions = std::string());
 
 /** @brief Parse HTTP headers from raw request bytes. */
 bool parse_http_headers(
     const std::string& raw,
     std::string& request_line,
     std::map<std::string, std::string>& headers);
-
-/** @brief Build HTTP 101 Switching Protocols response. */
-std::string build_server_response(const std::string& accept_key);
 
 /** @brief Validate required WebSocket upgrade headers. */
 bool validate_client_request(const std::map<std::string, std::string>& headers);

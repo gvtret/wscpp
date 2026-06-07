@@ -12,6 +12,7 @@ add_executable(wscpp_test_unit
     test_client.cpp
     test_server.cpp
     test_utf8.cpp
+    test_permessage_deflate.cpp
 )
 
 target_link_libraries(wscpp_test_unit

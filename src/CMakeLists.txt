@@ -10,6 +10,16 @@ add_library(wscpp STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/server.cpp
 )
 
+if(WSCPP_ENABLE_DEFLATE)
+    target_sources(wscpp PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/extensions/permessage_deflate.cpp
+    )
+    target_link_libraries(wscpp PUBLIC ZLIB::ZLIB)
+    target_compile_definitions(wscpp PUBLIC WSCPP_ENABLE_DEFLATE=1)
+else()
+    target_compile_definitions(wscpp PUBLIC WSCPP_ENABLE_DEFLATE=0)
+endif()
+
 target_include_directories(wscpp
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

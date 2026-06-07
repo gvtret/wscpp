@@ -110,7 +110,7 @@ Yes. The library targets C++11 without requiring newer standards.
 No. ASIO is fetched as standalone ASIO 1.20.
 
 **Is permessage-deflate supported?**  
-Not in v1.0 (planned post-v1.0, RFC 7692).
+Yes (v1.1.0, RFC 7692). Call `client::enable_permessage_deflate()` before `connect()`; the server accepts the extension automatically when offered.
 
 **Can I use wscpp from multiple threads?**  
 Each `client`/`server` owns an `io_context`. The connection reader runs in a background thread; callbacks may be invoked from that thread.

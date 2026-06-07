@@ -1,6 +1,9 @@
 #include <wscpp/server.hpp>
 #include <wscpp/handshake.hpp>
 #include <wscpp/detail/make_unique.hpp>
+#if WSCPP_ENABLE_DEFLATE
+#include <wscpp/extensions/permessage_deflate.hpp>
+#endif
 #include <asio/read_until.hpp>
 #include <asio/streambuf.hpp>
 #include <map>
@@ -188,7 +191,20 @@ private:
 
             const std::string accept =
                 handshake::compute_accept(headers["sec-websocket-key"]);
+#if WSCPP_ENABLE_DEFLATE
+            std::string extensions;
+            const std::map<std::string, std::string>::const_iterator ext =
+                headers.find("sec-websocket-extensions");
+            if (ext != headers.end() &&
+                extensions::header_offers_permessage_deflate(ext->second)) {
+                conn->set_permessage_deflate(true);
+                extensions = extensions::permessage_deflate_offer();
+            }
+            const std::string response =
+                handshake::build_server_response(accept, extensions);
+#else
             const std::string response = handshake::build_server_response(accept);
+#endif
             conn->socket().write(response.data(), response.size());
             return true;
         } catch (const std::exception& ex) {

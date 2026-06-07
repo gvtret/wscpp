@@ -1,6 +1,10 @@
 #ifndef WSCPP_CONNECTION_HPP
 #define WSCPP_CONNECTION_HPP
 
+#ifndef WSCPP_ENABLE_DEFLATE
+#define WSCPP_ENABLE_DEFLATE 0
+#endif
+
 /**
  * @file connection.hpp
  * @brief WebSocket connection: framing, reader thread, callbacks.
@@ -81,6 +85,14 @@ public:
 
     /** @brief Set client/server role for RFC 6455 masking (default: server). */
     void set_role(connection_role role);
+
+#if WSCPP_ENABLE_DEFLATE
+    /** @brief Enable RFC 7692 permessage-deflate after handshake negotiation. */
+    void set_permessage_deflate(bool enabled);
+
+    /** @brief True if permessage-deflate is active on this connection. */
+    bool permessage_deflate() const;
+#endif
 
     void set_on_open(open_callback cb);
     void set_on_message(message_callback cb);

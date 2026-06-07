@@ -1,6 +1,6 @@
 # WebSocket Libraries for C++11 — Comparative Analysis
 
-Comparative catalog and benchmark results for **wscpp** (v1.0.2). Numbers below were measured after the RFC gate (6455 + UTF-8 §8.1 + basic WSS) was green.
+Comparative catalog and benchmark results for **wscpp** (v1.1.0). Numbers below were measured after the RFC gate (6455 + UTF-8 §8.1 + basic WSS) was green.
 
 ## Executive summary
 
@@ -25,7 +25,7 @@ On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the
 |-----|--------|--------|
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) | Framing (§5), handshake (§4), close (§7), ping/pong (§5.5), fragmentation, UTF-8 (§8.1) | **Implemented** |
 | [RFC 2818](https://www.rfc-editor.org/rfc/rfc2818) | `wss://` TLS + SNI | **Implemented** |
-| [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692) | permessage-deflate | Post-v1.0; excluded from baseline |
+| [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692) | permessage-deflate | **Implemented** (v1.1.0) |
 
 ### Comparison dimensions
 
@@ -95,7 +95,7 @@ On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the
 | Fragment reassembly | yes | yes | yes | yes | yes |
 | Auto pong | yes | yes | yes | yes | yes |
 | UTF-8 text validation | yes | yes | yes | yes | varies |
-| permessage-deflate | no (v1.0) | yes | yes | yes | yes |
+| permessage-deflate | yes (v1.1.0) | yes | yes | yes | yes |
 | FetchContent-friendly | yes (ASIO) | yes | yes | no (Boost) | partial |
 | Header-only option | no (static lib) | yes | no | no | no (C lib) |
 
@@ -110,7 +110,7 @@ On localhost echo, wscpp, websocketpp, IXWebSocket, and libwebsockets are in the
 
 **Trade-offs:**
 
-- No permessage-deflate in v1.0 (RFC 7692 planned post-v1.0)
+- permessage-deflate (RFC 7692) with zlib; opt-in via `client::enable_permessage_deflate()`
 - Client cert verification defaults to `verify_none` for developer ergonomics
 - Fewer extensions and examples than websocketpp / Beast / libwebsockets
 
@@ -165,7 +165,7 @@ Manual compare targets (Beast, Simple-WebSocket-Server): `benchmarks/compare/REA
 | Lowest localhost echo (this setup) | wscpp, websocketpp, IXWebSocket, libwebsockets (within ~0.1 ms p50) |
 | Mobile / cross-platform SDK | **IXWebSocket** |
 | C codebase / mature ops stack | **libwebsockets** |
-| Need permessage-deflate now | IXWebSocket, Beast, libwebsockets (not wscpp v1.0) |
+| Need permessage-deflate now | **wscpp** v1.1+, IXWebSocket, Beast, libwebsockets |
 
 ## Changelog
 

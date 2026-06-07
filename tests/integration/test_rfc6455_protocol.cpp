@@ -143,3 +143,48 @@ TEST(Rfc6455Connection, InvalidUtf8TextClosesWith1007) {
     srv.stop();
     EXPECT_EQ(close_code, 1007u);
 }
+
+#if WSCPP_ENABLE_DEFLATE
+
+TEST(Rfc6455Connection, DeflateTextEcho) {
+    const uint16_t port = pick_free_port();
+    std::atomic<bool> done(false);
+    std::string received;
+
+    server srv;
+    srv.set_on_connection([&](std::shared_ptr<connection> conn) {
+        conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
+            if (op == frame::opcode::TEXT) {
+                conn->send_text(std::string(data.begin(), data.end()));
+            }
+        });
+    });
+    srv.listen(port);
+    srv.start();
+
+    std::thread t([&]() {
+        client cli;
+        cli.enable_permessage_deflate(true);
+        cli.set_on_open([&]() { cli.send_text("Hello compressed"); });
+        cli.set_on_message([&](const std::vector<uint8_t>& data, frame::opcode op) {
+            if (op == frame::opcode::TEXT) {
+                received = std::string(data.begin(), data.end());
+                cli.close();
+                done = true;
+            }
+        });
+        try {
+            cli.connect("ws://127.0.0.1:" + std::to_string(port) + "/");
+            wait_for(done, 5000);
+        } catch (...) {
+            done = true;
+        }
+    });
+
+    ASSERT_TRUE(wait_for(done, 5000));
+    t.join();
+    srv.stop();
+    EXPECT_EQ(received, "Hello compressed");
+}
+
+#endif

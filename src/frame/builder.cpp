@@ -38,7 +38,8 @@ std::vector<uint8_t> builder::build(
     size_t size,
     bool fin,
     bool mask,
-    const std::array<uint8_t, 4>& masking_key
+    const std::array<uint8_t, 4>& masking_key,
+    bool rsv1
 ) {
     std::vector<uint8_t> frame;
     
@@ -49,6 +50,9 @@ std::vector<uint8_t> builder::build(
     uint8_t first_byte = 0;
     if (fin) {
         first_byte |= 0x80;
+    }
+    if (rsv1) {
+        first_byte |= 0x40;
     }
     first_byte |= static_cast<uint8_t>(op);
     frame.push_back(first_byte);

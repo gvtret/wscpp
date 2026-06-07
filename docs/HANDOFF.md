@@ -23,6 +23,12 @@
 **State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
 **Next:** Optional UTF-8 text validation (RFC 6455 §8.1); F2 expansion (Beast/IXWebSocket).
 
+## 2026-06-07 — RFC 7692 permessage-deflate (v1.1.0)
+
+**Done:** zlib codec, handshake negotiation, RSV1 on connection; `client::enable_permessage_deflate()`; 3 unit + 1 integration test. Release v1.1.0. 94/94 tests pass.
+**State:** `main`, VERSION 1.1.0, tag `v1.1.0`.
+**Next:** Optional Beast/SWS manual benches; further extension tuning (window bits).
+
 ## 2026-06-07 — F2: libwebsockets compare bench
 
 **Done:** `bench_libwebsockets_roundtrip` via pkg-config (4.3.5); ANALYSIS/README updated. F2 harness now covers 5 libraries (+ wscpp). 90/90 tests pass.

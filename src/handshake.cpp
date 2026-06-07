@@ -67,7 +67,8 @@ std::string build_client_request(
     const std::string& host,
     const std::string& port,
     const std::string& path,
-    const std::string& key) {
+    const std::string& key,
+    const std::string& extensions) {
     std::ostringstream request;
     request << "GET " << path << " HTTP/1.1\r\n";
     request << "Host: " << host;
@@ -79,6 +80,9 @@ std::string build_client_request(
     request << "Connection: Upgrade\r\n";
     request << "Sec-WebSocket-Key: " << key << "\r\n";
     request << "Sec-WebSocket-Version: 13\r\n";
+    if (!extensions.empty()) {
+        request << "Sec-WebSocket-Extensions: " << extensions << "\r\n";
+    }
     request << "\r\n";
     return request.str();
 }
@@ -117,12 +121,17 @@ bool parse_http_headers(
     return true;
 }
 
-std::string build_server_response(const std::string& accept_key) {
+std::string build_server_response(
+    const std::string& accept_key,
+    const std::string& extensions) {
     std::ostringstream response;
     response << "HTTP/1.1 101 Switching Protocols\r\n";
     response << "Upgrade: websocket\r\n";
     response << "Connection: Upgrade\r\n";
     response << "Sec-WebSocket-Accept: " << accept_key << "\r\n";
+    if (!extensions.empty()) {
+        response << "Sec-WebSocket-Extensions: " << extensions << "\r\n";
+    }
     response << "\r\n";
     return response.str();
 }

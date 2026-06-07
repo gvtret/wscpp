@@ -1,6 +1,10 @@
 #ifndef WSCPP_CLIENT_HPP
 #define WSCPP_CLIENT_HPP
 
+#ifndef WSCPP_ENABLE_DEFLATE
+#define WSCPP_ENABLE_DEFLATE 0
+#endif
+
 /**
  * @file client.hpp
  * @brief WebSocket client API (ws:// and wss://).
@@ -85,6 +89,11 @@ public:
 
     /** @brief Stop io_context event loop. */
     void stop();
+
+#if WSCPP_ENABLE_DEFLATE
+    /** @brief Request RFC 7692 permessage-deflate on connect (default off). */
+    void enable_permessage_deflate(bool enable = true);
+#endif
 
 private:
     struct url_info {

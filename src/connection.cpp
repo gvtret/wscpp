@@ -3,6 +3,9 @@
 #include <wscpp/detail/utf8.hpp>
 #include <wscpp/frame/parser.hpp>
 #include <wscpp/frame/builder.hpp>
+#if WSCPP_ENABLE_DEFLATE
+#include <wscpp/extensions/permessage_deflate.hpp>
+#endif
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -21,7 +24,13 @@ public:
           expecting_close_(false),
           reader_running_(false),
           fragmented_(false),
-          message_opcode_(frame::opcode::TEXT) {}
+          message_opcode_(frame::opcode::TEXT),
+          message_compressed_(false)
+#if WSCPP_ENABLE_DEFLATE
+          ,
+          permessage_deflate_(false)
+#endif
+          {}
 
     ~impl() {
         is_open_ = false;
@@ -114,6 +123,12 @@ public:
 
     void set_role(connection_role role) { role_ = role; }
 
+#if WSCPP_ENABLE_DEFLATE
+    void set_permessage_deflate(bool enabled) { permessage_deflate_ = enabled; }
+
+    bool permessage_deflate() const { return permessage_deflate_; }
+#endif
+
     void set_on_open(open_callback cb) { on_open_ = cb; }
     void set_on_message(message_callback cb) { on_message_ = cb; }
     void set_on_close(close_callback cb) { on_close_ = cb; }
@@ -133,9 +148,30 @@ private:
         if (!is_open_) {
             throw std::runtime_error("Connection not open");
         }
+        const uint8_t* send_data = data;
+        std::size_t send_size = size;
+        std::vector<uint8_t> compressed;
+        bool rsv1 = false;
+
+#if WSCPP_ENABLE_DEFLATE
+        if (permessage_deflate_ && fin &&
+            (op == frame::opcode::TEXT || op == frame::opcode::BINARY)) {
+            if (!extensions::compress_message(data, size, compressed)) {
+                throw std::runtime_error("permessage-deflate compression failed");
+            }
+            send_data = compressed.data();
+            send_size = compressed.size();
+            rsv1 = true;
+        }
+#endif
+
         frame::builder b;
+        std::array<uint8_t, 4> mask_key = {{0, 0, 0, 0}};
+        if (outbound_mask()) {
+            mask_key = b.generate_masking_key();
+        }
         const std::vector<uint8_t> frame =
-            b.build(op, data, size, fin, outbound_mask());
+            b.build(op, send_data, send_size, fin, outbound_mask(), mask_key, rsv1);
         socket_.write(frame.data(), frame.size());
     }
 
@@ -187,7 +223,27 @@ private:
     }
 
     bool validate_frame_header() {
+        const bool data_opcode =
+            current_header_.op == frame::opcode::TEXT ||
+            current_header_.op == frame::opcode::BINARY ||
+            current_header_.op == frame::opcode::CONTINUATION;
+
+#if WSCPP_ENABLE_DEFLATE
+        if (current_header_.rsv1) {
+            if (!permessage_deflate_ || !data_opcode) {
+                fail_protocol("RSV1 set without permessage-deflate");
+                return false;
+            }
+            if (current_header_.op == frame::opcode::CONTINUATION) {
+                fail_protocol("RSV1 on continuation frame");
+                return false;
+            }
+        }
+        if ((current_header_.rsv2 || current_header_.rsv3) ||
+            (!permessage_deflate_ && current_header_.rsv1)) {
+#else
         if (current_header_.rsv1 || current_header_.rsv2 || current_header_.rsv3) {
+#endif
             fail_protocol("RSV bits set without extension negotiation");
             return false;
         }
@@ -207,7 +263,21 @@ private:
         return true;
     }
 
-    void deliver_message(const std::vector<uint8_t>& payload, frame::opcode op) {
+    void deliver_message(std::vector<uint8_t>& payload, frame::opcode op, bool compressed) {
+#if WSCPP_ENABLE_DEFLATE
+        if (compressed) {
+            if (!permessage_deflate_) {
+                fail_protocol("Compressed frame without negotiated extension");
+                return;
+            }
+            std::vector<uint8_t> plain;
+            if (!extensions::decompress_message(payload.data(), payload.size(), plain)) {
+                fail_protocol("permessage-deflate decompression failed");
+                return;
+            }
+            payload.swap(plain);
+        }
+#endif
         if (op == frame::opcode::TEXT && !detail::is_valid_utf8(payload)) {
             fail_with_close(1007, "Invalid UTF-8 in text frame");
             return;
@@ -217,10 +287,16 @@ private:
         }
     }
 
+    void deliver_message(const std::vector<uint8_t>& payload, frame::opcode op) {
+        std::vector<uint8_t> copy = payload;
+        deliver_message(copy, op, false);
+    }
+
     void reset_fragment_state() {
         fragmented_ = false;
         message_buffer_.clear();
         message_opcode_ = frame::opcode::TEXT;
+        message_compressed_ = false;
     }
     void open_and_start_reader() {
         is_open_ = true;
@@ -371,7 +447,7 @@ private:
             message_buffer_.insert(message_buffer_.end(),
                                    payload_buffer_.begin(), payload_buffer_.end());
             if (current_header_.fin) {
-                deliver_message(message_buffer_, message_opcode_);
+                deliver_message(message_buffer_, message_opcode_, message_compressed_);
                 reset_fragment_state();
             }
             return;
@@ -386,9 +462,10 @@ private:
                 fragmented_ = true;
                 message_opcode_ = op;
                 message_buffer_ = payload_buffer_;
+                message_compressed_ = current_header_.rsv1;
                 return;
             }
-            deliver_message(payload_buffer_, op);
+            deliver_message(payload_buffer_, op, current_header_.rsv1);
             return;
         }
 
@@ -441,6 +518,11 @@ private:
     std::vector<uint8_t> message_buffer_;
     bool fragmented_;
     frame::opcode message_opcode_;
+    bool message_compressed_;
+
+#if WSCPP_ENABLE_DEFLATE
+    bool permessage_deflate_;
+#endif
 
     bool is_open_;
     bool is_closing_;
@@ -502,6 +584,16 @@ void connection::send_ping(const uint8_t* data, size_t size) {
 void connection::set_role(connection_role role) {
     pimpl_->set_role(role);
 }
+
+#if WSCPP_ENABLE_DEFLATE
+void connection::set_permessage_deflate(bool enabled) {
+    pimpl_->set_permessage_deflate(enabled);
+}
+
+bool connection::permessage_deflate() const {
+    return pimpl_->permessage_deflate();
+}
+#endif
 
 void connection::set_on_open(open_callback cb) {
     pimpl_->set_on_open(cb);

@@ -30,7 +30,8 @@ public:
         size_t size,
         bool fin = true,
         bool mask = false,
-        const std::array<uint8_t, 4>& masking_key = {{0, 0, 0, 0}}
+        const std::array<uint8_t, 4>& masking_key = {{0, 0, 0, 0}},
+        bool rsv1 = false
     );
 
     /** @brief Build text (UTF-8) frame. */
@@ -69,8 +70,10 @@ public:
         bool mask = false
     );
 
-private:
+    /** @brief Generate random RFC 6455 masking key. */
     std::array<uint8_t, 4> generate_masking_key();
+
+private:
     void mask_data(uint8_t* data, size_t size, const std::array<uint8_t, 4>& key);
 
     std::array<uint8_t, 4> masking_key_;
