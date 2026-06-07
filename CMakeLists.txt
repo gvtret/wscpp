@@ -103,7 +103,18 @@ option(WSCPP_BUILD_DOCS "Build API documentation with Doxygen" ON)
 if(WSCPP_BUILD_DOCS)
     find_package(Doxygen QUIET)
     if(DOXYGEN_FOUND)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Docs.cmake)
+        set(WSCPP_VERSION ${WSCPP_VERSION_STRING})
+        configure_file(
+            ${CMAKE_SOURCE_DIR}/Doxyfile.in
+            ${CMAKE_BINARY_DIR}/Doxyfile
+            @ONLY
+        )
+        add_custom_target(docs
+            COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Generating Doxygen API documentation"
+            VERBATIM
+        )
     else()
         message(STATUS "Doxygen not found — docs target disabled")
     endif()
