@@ -1,7 +1,7 @@
 // wscpp.cpp
 // Main source file for wscpp library
 
-#include <wscpp/version.h>
+#include <wscpp_version.h>
 
 namespace wscpp {
 
