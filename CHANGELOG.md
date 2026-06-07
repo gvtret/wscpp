@@ -7,9 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [Unreleased]
-
 ### Added
+- LAN comparative benchmarks: `bench_*_echo_server`, `bench_*_roundtrip_net`, `run_remote_network_compare.sh`
 - Linux POSIX socket transport (`WSCPP_USE_ASIO=OFF`) with OpenSSL TLS on Linux
 - `wscpp::errc` / `std::error_code` throughout public API (no exceptions in library I/O)
 - TLS integration tests with local PKI generation (`scripts/gen-test-tls-certs.sh`)
@@ -20,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Client WSS connect order (TCP connect before TLS enable on linux path)
 
 ### Changed
-- `ANALYSIS.md` dual-transport benchmark tables, table legend for missing values
+- `ANALYSIS.md` dual-transport and LAN benchmark tables; table legend for missing values
 - Integration tests default CTest timeout 30s
 
 ## [1.1.0] - 2026-06-07
@@ -87,7 +86,9 @@ First stable release: full WebSocket client/server stack, TLS, tests, docs, and 
 
 - Initial WebSocket stack scaffold
 
-[Unreleased]: https://github.com/gvtret/wscpp/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/gvtret/wscpp/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/gvtret/wscpp/compare/v1.0.2...v1.1.0
+[1.0.2]: https://github.com/gvtret/wscpp/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/gvtret/wscpp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gvtret/wscpp/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/gvtret/wscpp/releases/tag/v0.1.0

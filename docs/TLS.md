@@ -5,7 +5,7 @@ wscpp supports `wss://` (RFC 2818) on both transports:
 - **ASIO** — `asio::ssl::context` via `server::set_ssl_context()` / `client::set_ssl_context()`
 - **Linux POSIX** — `wscpp::net::openssl_context` with the same API surface
 
-Public I/O uses `std::error_code`; TLS setup failures return `false` or error codes from `connect()`.
+Public I/O uses `std::error_code`; TLS and connect failures surface via `listen()` / `start()` / `connect()` return values.
 
 ## Quick start (development)
 

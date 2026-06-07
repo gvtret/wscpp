@@ -4,13 +4,16 @@ Comparative catalog and benchmark results for **wscpp** (v1.1.0). Numbers below 
 
 ## Executive summary
 
-| | wscpp (linux) | wscpp (ASIO) | websocketpp | IXWebSocket | libwebsockets | Beast | SWS | easywsclient |
-|---|---------------|--------------|-------------|-------------|---------------|-------|-----|--------------|
+| Metric | wscpp (linux) | wscpp (ASIO) | websocketpp | IXWebSocket | libwebsockets | Beast | SWS | easywsclient |
+|--------|---------------|--------------|-------------|-------------|---------------|-------|-----|--------------|
 | **Role** | client + server | client + server | client + server | client + server | client + server | client + server | client + server | client only |
 | **`C++11`, no Boost** | yes | yes (needs ASIO) | yes (needs ASIO) | yes | C API | no (Boost) | yes (ASIO) | yes |
 | **Echo p50 (localhost)** | 0.25 ms | 0.25 ms | 0.31 ms | 0.28 ms | 0.26 ms | 0.25 ms | 0.28 ms | — [b] |
-| **Echo / connect p99** | 0.36 ms | 0.32 ms | 0.59 ms | 0.68 ms | 0.40 ms | 0.32 ms | 0.46 ms | 1.88 ms connect |
-| **64 KiB throughput** | 92 MB/s | 82 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
+| **Echo p50 (LAN)** | 0.34 ms | 0.40 ms | 0.32 ms | 0.42 ms | 0.33 ms | 0.32 ms | 0.37 ms | — [b] |
+| **Echo / connect p99 (localhost)** | 0.36 ms | 0.32 ms | 0.59 ms | 0.68 ms | 0.40 ms | 0.32 ms | 0.46 ms | 1.88 ms connect |
+| **Echo / connect p99 (LAN)** | 1.24 ms | 0.77 ms | 2.01 ms | 0.85 ms | 3.55 ms | 0.86 ms | 0.61 ms | 30 ms connect |
+| **64 KiB throughput (localhost)** | 92 MB/s | 82 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
+| **64 KiB throughput (LAN)** | 27 MB/s | 28 MB/s | — [a] | 31 MB/s | — [a] | 29 MB/s | — [a] | — [b] |
 | **Bench binary size** | 281 KB | 383 KB | 687 KB | 473 KB | 126 KB* | 668 KB | 675 KB | 370 KB |
 
 **Executive summary footnotes:** [a] compare target measures echo only (no 64 KiB loop in `bench_*_roundtrip`). [b] client-only — harness runs connect latency, not echo (`bench_easywsclient_connect`). Full tag list: [Table legend](#table-legend).
@@ -67,12 +70,13 @@ Public API uses `std::error_code` throughout — no exceptions.
 | Frame parse/build (1 MiB) | `bench_frame_parse` | wscpp only |
 | Mask/unmask throughput | `bench_masking` | wscpp only |
 | Echo latency p50/p99 (100 samples) | `bench_roundtrip`, `bench_*_roundtrip` | localhost; run wscpp twice (linux + ASIO) |
+| Echo latency over LAN | `bench_*_roundtrip_net` + `bench_*_echo_server` | client local, echo server remote; `run_remote_network_compare.sh` |
 | 64 KiB binary throughput | `bench_roundtrip`, `bench_ixwebsocket_roundtrip` | 100 iterations |
 | Connect latency | `bench_easywsclient_connect` | TCP + WS handshake, client-only |
 
-**Limitations:** localhost only; single machine; no concurrent connections; no TLS in compare suite; libwebsockets bench needs `libwebsockets-dev`; Beast bench needs `libboost-system-dev`.
+**Limitations:** single connection per run; no TLS in compare suite; libwebsockets bench needs `libwebsockets-dev`; Beast bench needs `libboost-system-dev`. LAN compare needs a reachable remote host (default `deploy@192.168.1.165`).
 
-**Environment (2026-06-07):** Linux/WSL2, Release, GCC 15, `127.0.0.1`, no TLS in compare benches.
+**Environment (2026-06-07):** Linux/WSL2 client (GCC 15), Release; localhost benches on `127.0.0.1`; LAN benches — echo server on Debian 13 VM at `192.168.1.165` (GCC 14, ICMP RTT ~0.5–0.7 ms); no TLS in compare benches.
 
 ## Tier 1 — native C++, **`C++11`**, client + server
 
@@ -135,8 +139,8 @@ Tier 2/3 capability dashes use tags [c]–[e] from [Table legend](#table-legend)
 
 - **`C++11`**-only, no Boost; reproducible builds via FetchContent ASIO or linux-only OpenSSL path
 - Dual transport: linux POSIX (281 KB bench) or ASIO (383 KB bench) vs 473–687 KB peers
-- Explicit layering: frame → connection → client|server; all I/O returns `std::error_code`
-- RFC 6455 regression vectors and 90 automated tests in-tree
+- Explicit layering: frame → connection → client/server; all I/O returns `std::error_code`
+- RFC 6455 regression vectors and 94 automated tests in-tree
 
 **Trade-offs:**
 
@@ -163,6 +167,42 @@ Micro-benchmarks (`bench_frame_parse`, `bench_masking`) are transport-agnostic (
 | Frame parse | ~22 GB/s |
 | Mask/unmask XOR | ~70 GB/s |
 | Masked build+parse | ~4.6 GB/s |
+
+### Network benchmark (LAN)
+
+Echo server on **`deploy@192.168.1.165`** (Debian 13, GCC 14, QEMU VM, 8 vCPU); client on the WSL2 bench host (GCC 15). ICMP RTT ~0.5–0.7 ms. Plain `ws://`, port 19081, 100 samples. Harness: `benchmarks/run_remote_network_compare.sh`.
+
+#### wscpp dual transport (LAN)
+
+| Transport | Echo p50 | Echo p99 | 64 KiB throughput |
+|-----------|----------|----------|-------------------|
+| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.34 ms | 1.24 ms | 27 MB/s |
+| **ASIO** (`WSCPP_USE_ASIO=ON`) | 0.40 ms | 0.77 ms | 28 MB/s |
+
+#### Third-party compare (LAN)
+
+| Library | Echo p50 | Echo p99 | 64 KiB throughput |
+|---------|----------|----------|-------------------|
+| **websocketpp** 0.8.2 | 0.32 ms | 2.01 ms | — [a] |
+| **IXWebSocket** 11.4.6 | 0.42 ms | 0.85 ms | 31 MB/s |
+| **libwebsockets** 4.3.5 | 0.33 ms | 3.55 ms | — [a] |
+| **Boost.Beast** (Boost 1.88) | 0.32 ms | 0.86 ms | 29 MB/s |
+| **Simple-WebSocket-Server** | 0.37 ms | 0.61 ms | — [a] |
+| **easywsclient** (connect) | 1.50 ms | 30 ms | — [b] |
+
+Compared to localhost (same code, same day): echo p50 rises by ~0.07–0.17 ms; 64 KiB throughput drops from ~62–92 MB/s to ~27–31 MB/s — dominated by real NIC/stack and two-machine scheduling, not framing micro-ops.
+
+Reproduce:
+
+```bash
+bash benchmarks/run_remote_network_compare.sh
+# re-run benchmarks only (skip rsync/build):
+WSCPP_BENCH_SKIP_BUILD=1 bash benchmarks/run_remote_network_compare.sh
+```
+
+Override host: `WSCPP_BENCH_REMOTE`, `WSCPP_BENCH_HOST`, `WSCPP_BENCH_SAMPLES`.
+
+Per-library targets: `compare_net_servers` (remote), `compare_net_clients` (local). Micro-benchmarks (`bench_frame_parse`, `bench_masking`) remain CPU-local — they do not use the network harness.
 
 ### Third-party compare (automated harness, ASIO build tree)
 
@@ -225,3 +265,5 @@ cmake --build build-asio --target run_benchmarks
 | 2026-06-07 | Dual transport benches; `error_code` API; `run_benchmarks_both.sh` |
 | 2026-06-07 | Frame perf: word-at-a-time masking, zero-copy build; updated micro + echo numbers |
 | 2026-06-07 | Frame perf: uint64 mask unroll, reused outbound buffer, UTF-8 ASCII fast path |
+| 2026-06-07 | LAN network benchmark (`bench_echo_server`, `bench_roundtrip_net`, `run_remote_network.sh`) |
+| 2026-06-07 | Full LAN compare suite (`bench_*_echo_server`, `bench_*_roundtrip_net`, `run_remote_network_compare.sh`) |

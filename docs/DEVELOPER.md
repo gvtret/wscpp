@@ -18,8 +18,8 @@ flowchart TB
         Frame[frame/parser + builder]
     end
     subgraph infra [Infrastructure]
-        Net[net/asio_socket]
-        Crypto[crypto/ssl_context]
+        Net[net/stream_socket]
+        Crypto[TLS context]
     end
     Client --> Conn
     Server --> Conn
@@ -28,7 +28,7 @@ flowchart TB
     Client --> HS
     Server --> HS
     Net --> Crypto
-    Net --> ASIO[standalone ASIO 1.20]
+    Net --> Transport[ASIO 1.20 or Linux POSIX]
     Crypto --> OpenSSL[OpenSSL TLS]
 ```
 
@@ -40,13 +40,13 @@ Layer responsibilities:
 | `connection` | Frame I/O, background reader, callbacks |
 | `handshake` | RFC 6455 Sec-WebSocket-Key / Accept |
 | `frame` | RFC 6455 framing parse/build |
-| `net/asio_socket` | TCP + optional TLS stream |
-| `crypto/ssl_context` | Thin wrapper over `asio::ssl::context` |
+| `net/` | TCP + TLS stream (`asio_socket` or `linux_socket` via `WSCPP_USE_ASIO`) |
+| TLS | `asio::ssl::context` (ASIO) or `net::openssl_context` (linux transport) |
 
 ## Code conventions
 
-- **`C++11`**, no exceptions in hot paths where avoidable; public API may throw on fatal I/O errors
-- `pimpl` idiom for `client`, `server`, `connection`, `asio_socket`
+- **`C++11`**, public I/O returns `std::error_code` (no exceptions from library connect/send paths)
+- `pimpl` idiom for `client`, `server`, `connection`, socket types
 - Match existing naming: `snake_case` methods, `opcode` enum in `frame` namespace
 - Protocol changes require RFC cross-check (see below)
 - Commit messages in English; one logical change per commit when following the implementation plan
@@ -70,12 +70,13 @@ Targets:
 | `wscpp_test_regression` | RFC 6455 frozen vectors |
 | `wscpp_test_stress` | Stress tests (requires `-DWSCPP_ENABLE_STRESS_TESTS=ON`) |
 | `bench_frame_parse`, `bench_masking`, `bench_roundtrip` | Micro-benchmarks (`-DWSCPP_BUILD_BENCHMARKS=ON`) |
-| `bench_websocketpp_roundtrip` | Comparative latency vs websocketpp |
-
-Micro-benchmarks are for development regression. **Publish comparative results in `ANALYSIS.md` only after RFC-mandated behaviour is complete** (see `benchmarks/README.md` and `ANALYSIS.md` → *When to benchmark*).
-
+| `bench_roundtrip_net`, `bench_echo_server` | LAN echo client/server pair |
+| `compare_net_clients`, `compare_net_servers` | Full LAN compare suite (see `benchmarks/README.md`) |
+| `bench_websocketpp_roundtrip`, … | Comparative localhost latency vs other libraries |
 | `docs` | Doxygen HTML |
 | `wscpp_example_*` | Example binaries |
+
+Micro-benchmarks are for development regression. **Publish comparative results in `ANALYSIS.md` only after RFC-mandated behaviour is complete** (see `benchmarks/README.md` and `ANALYSIS.md` → Methodology).
 
 ## Running tests
 

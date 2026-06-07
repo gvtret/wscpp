@@ -37,9 +37,12 @@
 ```bash
 cmake -B build -DWSCPP_BUILD_BENCHMARKS=ON
 cmake --build build --target run_benchmarks
-# or: benchmarks compare_benchmarks
+bash benchmarks/run_benchmarks_both.sh          # wscpp linux + ASIO transports
+bash benchmarks/run_remote_network_compare.sh   # LAN compare (remote echo server)
 ctest --timeout 30
 ```
+
+Перед PR локально: `./scripts/ci/check-format.sh`, `./scripts/ci/clang-tidy.sh build` (нужен `compile_commands.json`).
 
 См. `ANALYSIS.md` (методология) и `benchmarks/compare/README.md` (внешние библиотеки).
 
