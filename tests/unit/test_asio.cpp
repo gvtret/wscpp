@@ -42,34 +42,27 @@ TEST(AsioSocketTest, SetSSLContext) {
     asio::io_context io_context;
     wscpp::net::asio_socket socket(io_context);
     
-    asio::ssl::context ssl_context(asio::ssl::context::tlsv12_client);
-    socket.set_ssl_context(std::make_shared<asio::ssl::context>(ssl_context));
+    std::shared_ptr<asio::ssl::context> ctx(
+        new asio::ssl::context(asio::ssl::context::tlsv12_client));
+    socket.enable_ssl(ctx);
     
     EXPECT_TRUE(socket.is_ssl());
 }
 
-// Test write operation (basic)
-TEST(AsioSocketTest, WriteOperation) {
+// Test write operation requires an open connection
+TEST(AsioSocketTest, WriteOperationRequiresConnection) {
     asio::io_context io_context;
     wscpp::net::asio_socket socket(io_context);
-    
     const char* test_data = "Hello, ASIO!";
-    size_t bytes_written = socket.write(test_data, 12);
-    
-    // The write operation should complete (even if connection fails)
-    EXPECT_EQ(bytes_written, 12);
+    EXPECT_THROW(socket.write(test_data, 12), std::system_error);
 }
 
-// Test read operation (basic)
-TEST(AsioSocketTest, ReadOperation) {
+// Test read operation requires an open connection
+TEST(AsioSocketTest, ReadOperationRequiresConnection) {
     asio::io_context io_context;
     wscpp::net::asio_socket socket(io_context);
-    
     char buffer[256];
-    size_t bytes_read = socket.read(buffer, 256);
-    
-    // The read operation should complete (even if connection fails)
-    EXPECT_GE(bytes_read, 0);
+    EXPECT_THROW(socket.read(buffer, 256), std::system_error);
 }
 
 // Test multiple socket operations

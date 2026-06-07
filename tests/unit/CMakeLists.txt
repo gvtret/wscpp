@@ -7,6 +7,7 @@ add_executable(wscpp_test_unit
     test_asio.cpp
     test_openssl.cpp
     test_frame.cpp
+    test_handshake.cpp
     test_connection.cpp
 )
 

@@ -54,10 +54,9 @@ TEST(OpenSSLTest, SetOptions) {
     wscpp::crypto::ssl_context ctx;
     // Set common SSL options
     ctx.set_options(
-        ASIO_SSL_OP_NO_SSLv2 |
-        ASIO_SSL_OP_NO_SSLv3 |
-        ASIO_SSL_OP_NO_COMPRESSION
-    );
+        asio::ssl::context::no_sslv2 |
+        asio::ssl::context::no_sslv3 |
+        asio::ssl::context::no_compression);
 }
 
 // Test shared_context
