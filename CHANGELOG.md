@@ -69,7 +69,7 @@ First stable release: full WebSocket client/server stack, TLS, tests, docs, and 
 - User guide (`docs/README.md`), developer guide (`docs/DEVELOPER.md`)
 - Mandatory Doxygen API documentation (`cmake --build build --target docs`)
 - `ANALYSIS.md` — **`C++11`** WebSocket library catalog and benchmark results
-- `scripts/bump_version.sh`, GitVerse CI workflow
+- `scripts/bump_version.sh`, GitHub Actions CI workflow
 - Issue/PR templates and Code of Conduct
 
 ### Fixed

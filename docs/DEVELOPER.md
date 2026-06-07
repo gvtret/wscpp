@@ -86,7 +86,7 @@ ctest -R FrameTest --output-on-failure       # filter by name
 ctest -R wscpp_test_unit                     # unit suite
 ```
 
-### CI pipeline (GitHub Actions / GitVerse)
+### CI pipeline (GitHub Actions)
 
 Jobs run in order: **format** → **lint** (clang-tidy) → **test** (ASIO + linux transport, GCC + Clang) → **release-build** → **release** (tags `v*` only).
 
