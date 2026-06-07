@@ -41,6 +41,15 @@ coverage/
 # Documentation
 docs/_build/
 
+# TLS test fixtures and keys (generate locally — never commit)
+tests/tls/fixtures/*
+!tests/tls/fixtures/.gitignore
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+
 # Version file (optional - uncomment if you want to ignore)
 # VERSION
 
