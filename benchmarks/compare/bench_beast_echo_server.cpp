@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     std::string bind_host = "0.0.0.0";
     if (!parse_echo_server_args(argc, argv, port, bind_host)) {
         return argc > 1 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help") ? 0
-                                                                                             : 1;
+                                                                                              : 1;
     }
 
     try {
