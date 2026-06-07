@@ -18,7 +18,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install clang-format
         run: sudo apt-get update && sudo apt-get install -y clang-format
@@ -31,7 +31,7 @@ jobs:
     needs: format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -80,7 +80,7 @@ jobs:
             cxx: clang++
             cc: clang
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -112,7 +112,7 @@ jobs:
         run: cmake --build build --target docs
 
       - name: Upload Doxygen HTML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: doxygen-${{ matrix.transport }}-${{ matrix.cc }}
           path: build/docs/html
@@ -123,7 +123,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -148,14 +148,14 @@ jobs:
         run: ./scripts/ci/package-release.sh build
 
       - name: Upload release tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wscpp-release-tarball
           path: dist/*.tar.gz
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
       - name: Upload Doxygen (release)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: doxygen-release
           path: build/docs/html
@@ -169,16 +169,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download release tarball
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: wscpp-release-tarball
           path: dist
 
       - name: Download API docs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: doxygen-release
           path: doxygen-html

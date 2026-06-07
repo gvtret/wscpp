@@ -33,6 +33,7 @@ out/
 # IDE
 .idea/
 .vscode/
+.gigacode/
 *.sln
 *.vcxproj
 *.pro
