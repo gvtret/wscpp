@@ -89,23 +89,24 @@ parse_result parser::parse(const uint8_t* data, size_t size, frame_header& heade
                 }
                 break;
                 
-            case state::PAYLOAD:
-                if (parse_payload(data + consumed, size - consumed, consumed) == parse_result::ERROR) {
+            case state::PAYLOAD: {
+                const parse_result payload_result =
+                    parse_payload(data + consumed, size - consumed, consumed);
+                if (payload_result == parse_result::ERROR) {
                     return parse_result::ERROR;
                 }
+                if (payload_result == parse_result::COMPLETE) {
+                    header = header_;
+                    payload = std::move(buffer_);
+                    reset();
+                    return parse_result::COMPLETE;
+                }
                 break;
+            }
         }
         
         if (consumed == prev_consumed) {
-            // No progress made, need more data
             break;
-        }
-        
-        // Check if we completed the frame
-        if (state_ == state::HEADER && payload_remaining_ == 0) {
-            header = header_;
-            payload = std::move(buffer_);
-            return parse_result::COMPLETE;
         }
     }
     
@@ -128,17 +129,21 @@ parse_result parser::parse_header(const uint8_t* data, size_t size, size_t& cons
     header_.mask = (second_byte & 0x80) != 0;
     header_.payload_len = second_byte & 0x7F;
     
-    consumed = 2;
+    consumed += 2;
     
-    // Validate opcode
-    uint8_t op_val = static_cast<uint8_t>(header_.op);
-    if (op_val > 0x0A && op_val < 0x08) {
+    // Validate opcode (RFC 6455: 0,1,2,8,9,10 only)
+    const uint8_t op_val = static_cast<uint8_t>(header_.op);
+    if (!((op_val <= 0x02) || (op_val >= 0x08 && op_val <= 0x0A))) {
         return parse_result::ERROR;
     }
-    
-    // Determine next state based on payload length
+
     if (header_.payload_len <= 125) {
         state_ = header_.mask ? state::MASKING_KEY : state::PAYLOAD;
+        payload_remaining_ = header_.payload_len;
+        buffer_.clear();
+        if (header_.payload_len > 0) {
+            buffer_.reserve(static_cast<std::size_t>(header_.payload_len));
+        }
     } else if (header_.payload_len == 126) {
         state_ = state::PAYLOAD_LENGTH_EXT;
         payload_remaining_ = 0;
@@ -157,7 +162,7 @@ parse_result parser::parse_payload_length(const uint8_t* data, size_t size, size
             return parse_result::INCOMPLETE;
         }
         header_.payload_len = (static_cast<uint64_t>(data[0]) << 8) | data[1];
-        consumed = 2;
+        consumed += 2;
     } else {
         // 64-bit extended payload length
         if (size < 8) {
@@ -167,7 +172,7 @@ parse_result parser::parse_payload_length(const uint8_t* data, size_t size, size
         for (int i = 0; i < 8; ++i) {
             header_.payload_len = (header_.payload_len << 8) | data[i];
         }
-        consumed = 8;
+        consumed += 8;
     }
     
     // Validate payload length
@@ -176,6 +181,11 @@ parse_result parser::parse_payload_length(const uint8_t* data, size_t size, size
     }
     
     state_ = header_.mask ? state::MASKING_KEY : state::PAYLOAD;
+    payload_remaining_ = header_.payload_len;
+    buffer_.clear();
+    if (header_.payload_len > 0) {
+        buffer_.reserve(static_cast<std::size_t>(header_.payload_len));
+    }
     return parse_result::INCOMPLETE;
 }
 
@@ -188,7 +198,7 @@ parse_result parser::parse_masking_key(const uint8_t* data, size_t size, size_t&
         data[0], data[1], data[2], data[3]
     }};
     
-    consumed = 4;
+    consumed += 4;
     state_ = state::PAYLOAD;
     payload_remaining_ = header_.payload_len;
     buffer_.reserve(header_.payload_len);
@@ -207,7 +217,7 @@ parse_result parser::parse_payload(const uint8_t* data, size_t size, size_t& con
     // Copy payload
     buffer_.insert(buffer_.end(), data, data + to_read);
     
-    consumed = to_read;
+    consumed += to_read;
     payload_remaining_ -= to_read;
     
     if (payload_remaining_ == 0) {

@@ -106,7 +106,7 @@ TEST(FrameTest, BuildCloseFrame) {
     std::vector<uint8_t> frame = b.build_close(1000, "Normal closure", false);
     
     EXPECT_EQ(frame[0] & 0x0F, static_cast<uint8_t>(opcode::CLOSE));
-    EXPECT_EQ(frame.size(), 20); // 2 + 2 (status) + 16 (reason)
+    EXPECT_EQ(frame.size(), 18); // 2 + 2 (status) + 14 (reason)
     
     // Check status code
     uint16_t status = (static_cast<uint16_t>(frame[2]) << 8) | frame[3];
