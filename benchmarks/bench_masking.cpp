@@ -4,21 +4,12 @@
 #include <array>
 #include <cstdio>
 #include <vector>
+#include <wscpp/detail/mask.hpp>
 #include <wscpp/frame/builder.hpp>
 #include <wscpp/frame/parser.hpp>
 
 using namespace wscpp;
 using namespace wscpp::bench;
-
-namespace {
-
-void mask_payload(std::vector<uint8_t> &data, const std::array<uint8_t, 4> &key) {
-    for (std::size_t i = 0; i < data.size(); ++i) {
-        data[i] ^= key[i % 4];
-    }
-}
-
-} // namespace
 
 int main() {
     const std::size_t payload_size = 1024 * 1024;
@@ -33,8 +24,8 @@ int main() {
 
     const clock::time_point mask_start = clock::now();
     for (int i = 0; i < iterations; ++i) {
-        mask_payload(payload, key);
-        mask_payload(payload, key);
+        detail::apply_mask(payload.data(), payload.size(), key.data());
+        detail::apply_mask(payload.data(), payload.size(), key.data());
     }
     const clock::time_point mask_end = clock::now();
 

@@ -1,6 +1,7 @@
 #include <utility>
 #include <wscpp/connection.hpp>
 #include <wscpp/detail/make_unique.hpp>
+#include <wscpp/detail/mask.hpp>
 #include <wscpp/detail/utf8.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/frame/builder.hpp>
@@ -463,9 +464,8 @@ class connection::impl {
         }
 
         if (current_header_.mask) {
-            for (std::size_t i = 0; i < payload_buffer_.size(); ++i) {
-                payload_buffer_[i] ^= current_header_.masking_key[i % 4];
-            }
+            detail::apply_mask(payload_buffer_.data(), payload_buffer_.size(),
+                               current_header_.masking_key.data());
         }
         handle_frame();
     }

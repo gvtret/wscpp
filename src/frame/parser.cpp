@@ -1,5 +1,6 @@
 #include <algorithm>
-#include <stdexcept>
+#include <cstring>
+#include <wscpp/detail/mask.hpp>
 #include <wscpp/frame/builder.hpp>
 #include <wscpp/frame/parser.hpp>
 
@@ -206,19 +207,21 @@ parse_result parser::parse_payload(const uint8_t *data, size_t size, size_t &con
         return parse_result::COMPLETE;
     }
 
-    size_t to_read = std::min(payload_remaining_, size);
+    const size_t to_read = std::min(payload_remaining_, size);
+    const std::size_t offset = buffer_.size();
+    buffer_.resize(offset + to_read);
 
-    // Copy payload
-    buffer_.insert(buffer_.end(), data, data + to_read);
+    if (header_.mask) {
+        detail::copy_and_unmask(buffer_.data() + offset, data, to_read, offset,
+                                header_.masking_key.data());
+    } else {
+        std::memcpy(buffer_.data() + offset, data, to_read);
+    }
 
     consumed += to_read;
     payload_remaining_ -= to_read;
 
     if (payload_remaining_ == 0) {
-        // Unmask payload if mask is set
-        if (header_.mask) {
-            unmask_payload(buffer_);
-        }
         state_ = state::HEADER;
         return parse_result::COMPLETE;
     }
@@ -230,10 +233,7 @@ void parser::unmask_payload(std::vector<uint8_t> &payload) {
     if (!header_.mask || payload.empty()) {
         return;
     }
-
-    for (size_t i = 0; i < payload.size(); ++i) {
-        payload[i] ^= header_.masking_key[i % 4];
-    }
+    detail::apply_mask(payload.data(), payload.size(), header_.masking_key.data());
 }
 
 } // namespace frame

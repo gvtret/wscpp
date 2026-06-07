@@ -1,6 +1,6 @@
-#include <algorithm>
 #include <cstring>
 #include <random>
+#include <wscpp/detail/mask.hpp>
 #include <wscpp/frame/builder.hpp>
 
 namespace wscpp {
@@ -23,9 +23,7 @@ std::array<uint8_t, 4> builder::generate_masking_key() {
 }
 
 void builder::mask_data(uint8_t *data, size_t size, const std::array<uint8_t, 4> &key) {
-    for (size_t i = 0; i < size; ++i) {
-        data[i] ^= key[i % 4];
-    }
+    detail::apply_mask(data, size, key.data());
 }
 
 std::vector<uint8_t> builder::build(opcode op, const uint8_t *data, size_t size, bool fin,
@@ -33,8 +31,7 @@ std::vector<uint8_t> builder::build(opcode op, const uint8_t *data, size_t size,
                                     bool rsv1) {
     std::vector<uint8_t> frame;
 
-    // Reserve space for header (2 bytes + up to 16 bytes for extended length)
-    frame.reserve(2 + 16 + size);
+    frame.reserve(2 + 16 + (mask ? 4 : 0) + size);
 
     // First byte: FIN + RSV + Opcode
     uint8_t first_byte = 0;
@@ -71,21 +68,17 @@ std::vector<uint8_t> builder::build(opcode op, const uint8_t *data, size_t size,
         }
     }
 
-    // Add masking key if mask is set
-    std::array<uint8_t, 4> key = mask ? masking_key : masking_key_;
+    const std::array<uint8_t, 4> &key = mask ? masking_key : masking_key_;
     if (mask) {
         frame.insert(frame.end(), key.begin(), key.end());
     }
 
-    // Add payload
-    std::vector<uint8_t> payload(data, data + size);
-
-    // Mask payload if mask is set
+    const std::size_t payload_offset = frame.size();
+    frame.resize(payload_offset + size);
+    std::memcpy(frame.data() + payload_offset, data, size);
     if (mask) {
-        mask_data(payload.data(), payload.size(), key);
+        mask_data(frame.data() + payload_offset, size, key);
     }
-
-    frame.insert(frame.end(), payload.begin(), payload.end());
 
     return frame;
 }
