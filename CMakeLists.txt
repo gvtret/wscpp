@@ -51,6 +51,7 @@ option(WSCPP_BUILD_TESTS "Build tests" ON)
 option(WSCPP_ENABLE_STRESS_TESTS "Build stress integration tests" OFF)
 option(WSCPP_BUILD_EXAMPLES "Build examples" ON)
 option(WSCPP_BUILD_BENCHMARKS "Build benchmarks" OFF)
+option(WSCPP_ENABLE_LOGGING "Enable internal spdlog diagnostics" ON)
 option(WSCPP_BUILD_DOCS "Build API documentation with Doxygen" ON)
 
 if(WSCPP_ENABLE_DEFLATE)
@@ -84,6 +85,18 @@ if(WSCPP_NEED_ASIO_FETCH)
             INTERFACE_INCLUDE_DIRECTORIES "${asio_SOURCE_DIR}/asio/include"
         )
     endif()
+endif()
+
+if(WSCPP_ENABLE_LOGGING)
+    set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_BUILD_PIC ON CACHE BOOL "" FORCE)
+    set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.14.1
+    )
+    FetchContent_MakeAvailable(spdlog)
 endif()
 
 # Add subdirectories
@@ -195,6 +208,7 @@ message(STATUS "wscpp v${WSCPP_VERSION_STRING}")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Transport: ${WSCPP_USE_ASIO}")
+message(STATUS "  Logging: ${WSCPP_ENABLE_LOGGING}")
 message(STATUS "  OpenSSL: ${OPENSSL_VERSION}")
 if(WSCPP_USE_ASIO AND DEFINED asio_SOURCE_DIR)
     message(STATUS "  ASIO: ${asio_SOURCE_DIR}/asio/include")

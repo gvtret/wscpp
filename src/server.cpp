@@ -1,4 +1,5 @@
 #include <utility>
+#include <wscpp/detail/log.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/handshake.hpp>
@@ -213,6 +214,7 @@ class server::impl {
         asio::error_code ec;
         if (acceptor_.is_open()) {
             acceptor_.close(ec);
+            detail::log_error_ec("server", "acceptor close", ec);
         }
         io_context_.stop();
 #else
@@ -245,7 +247,9 @@ class server::impl {
     void start_accept() {
         std::shared_ptr<net::tcp::socket> socket(new net::tcp::socket(io_context_));
         acceptor_.async_accept(*socket, [this, socket](const asio::error_code &ec) {
-            if (!ec) {
+            if (ec) {
+                detail::log_error_ec("server", "async accept", ec);
+            } else {
                 handle_accept(std::move(*socket));
             }
             if (is_running_.load()) {
@@ -287,6 +291,7 @@ class server::impl {
                     ec == std::errc::invalid_argument) {
                     break;
                 }
+                detail::log_error_ec("server", "accept", ec);
                 continue;
             }
             std::thread worker([this, client_fd]() { handle_accept(net::tcp_socket(client_fd)); });
@@ -330,6 +335,7 @@ class server::impl {
 
         const std::error_code adopt_ec = conn->adopt(std::move(socket));
         if (adopt_ec) {
+            detail::log_error_ec("server", "adopt socket", adopt_ec);
             if (on_error_) {
                 on_error_(conn, adopt_ec.message());
             }
@@ -342,6 +348,7 @@ class server::impl {
                 ec = conn->socket().ssl_handshake(false);
             }
             if (ec) {
+                detail::log_error_ec("server", "TLS handshake", ec);
                 if (on_error_) {
                     on_error_(conn, ec.message());
                 }
@@ -365,6 +372,7 @@ class server::impl {
         std::error_code ec;
         conn->socket().read_until(request_buf, "\r\n\r\n", ec);
         if (ec) {
+            detail::log_error_ec("server", "read HTTP request", ec);
             if (on_error_) {
                 on_error_(conn, ec.message());
             }
@@ -375,6 +383,7 @@ class server::impl {
         std::string request_line;
         std::map<std::string, std::string> headers;
         if (!handshake::parse_http_headers(raw, request_line, headers)) {
+            detail::log_error("server", "Invalid HTTP request");
             if (on_error_) {
                 on_error_(conn, "Invalid HTTP request");
             }
@@ -382,6 +391,7 @@ class server::impl {
         }
 
         if (!handshake::validate_client_request(headers)) {
+            detail::log_error("server", "Invalid WebSocket handshake");
             if (on_error_) {
                 on_error_(conn, "Invalid WebSocket handshake");
             }
@@ -403,6 +413,7 @@ class server::impl {
 #endif
         conn->socket().write(response.data(), response.size(), ec);
         if (ec) {
+            detail::log_error_ec("server", "write handshake response", ec);
             if (on_error_) {
                 on_error_(conn, ec.message());
             }

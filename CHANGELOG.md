@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Internal logging backend (spdlog, `WSCPP_ENABLE_LOGGING`, default ON): all library errors including previously suppressed I/O/accept paths; public `wscpp::set_log_level()`
 - LAN comparative benchmarks: `bench_*_echo_server`, `bench_*_roundtrip_net`, `run_remote_network_compare.sh`
 - Linux POSIX socket transport (`WSCPP_USE_ASIO=OFF`) with OpenSSL TLS on Linux
 - `wscpp::errc` / `std::error_code` throughout public API (no exceptions in library I/O)

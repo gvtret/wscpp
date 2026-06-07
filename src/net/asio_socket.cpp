@@ -5,6 +5,7 @@
 #include <asio/write.hpp>
 #include <openssl/ssl.h>
 #include <utility>
+#include <wscpp/detail/log.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/net/asio_socket.hpp>
@@ -43,9 +44,14 @@ class asio_socket::impl {
         asio::error_code ec;
         if (ssl_) {
             ssl_->shutdown(ec);
+            detail::log_error_ec("asio_socket", "SSL shutdown", ec);
+            ec.clear();
         }
         socket_.shutdown(tcp::socket::shutdown_both, ec);
+        detail::log_error_ec("asio_socket", "socket shutdown", ec);
+        ec.clear();
         socket_.close(ec);
+        detail::log_error_ec("asio_socket", "socket close", ec);
     }
 
     std::size_t write(const void *data, std::size_t size, std::error_code &ec) {

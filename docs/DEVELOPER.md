@@ -42,6 +42,7 @@ Layer responsibilities:
 | `frame` | RFC 6455 framing parse/build |
 | `net/` | TCP + TLS stream (`asio_socket` or `linux_socket` via `WSCPP_USE_ASIO`) |
 | TLS | `asio::ssl::context` (ASIO) or `net::openssl_context` (linux transport) |
+| `detail/log` | Optional spdlog backend for internal error diagnostics (`WSCPP_ENABLE_LOGGING`) |
 
 ## Code conventions
 
@@ -59,6 +60,17 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution workflow.
 cmake -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 ```
+
+CMake options (selected):
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `WSCPP_USE_ASIO` | ON | ASIO transport; OFF = Linux POSIX sockets |
+| `WSCPP_ENABLE_DEFLATE` | ON | RFC 7692 permessage-deflate (zlib) |
+| `WSCPP_ENABLE_LOGGING` | ON | spdlog error diagnostics to stderr; OFF = no-op stubs |
+| `WSCPP_BUILD_BENCHMARKS` | OFF | Micro-benchmarks under `benchmarks/` |
+
+When logging is enabled, spdlog v1.14.1 is fetched via FetchContent (header-only in `src/log.cpp` only, not exported as a public link dependency). Public API: `wscpp/log.hpp` (`set_log_level`). Instrumentation lives in `connection`, `server`, and `net/*` error paths.
 
 Targets:
 

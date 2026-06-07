@@ -11,6 +11,7 @@ Lightweight WebSocket stack for **`C++11`** with optional TLS (`wss://`).
 - **`C++11`**, no Boost required (standalone ASIO 1.20 via FetchContent, or Linux POSIX sockets)
 - OpenSSL TLS for secure WebSocket
 - Client and server with callback-based API; `std::error_code` on I/O (no exceptions)
+- Optional internal diagnostics via **spdlog** (`WSCPP_ENABLE_LOGGING`, default ON)
 - RFC 6455 framing + RFC 7692 permessage-deflate (opt-in)
 - CMake build, SemVer versioning, Doxygen API docs
 

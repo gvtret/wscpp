@@ -39,6 +39,7 @@ Options:
 | `WSCPP_BUILD_EXAMPLES` | ON | Example programs |
 | `WSCPP_BUILD_DOCS` | ON | Doxygen API reference |
 | `WSCPP_ENABLE_DEFLATE` | ON | RFC 7692 permessage-deflate (requires zlib) |
+| `WSCPP_ENABLE_LOGGING` | ON | Internal error diagnostics via spdlog (stderr) |
 | `WSCPP_ENABLE_STRESS_TESTS` | OFF | Heavy integration stress tests |
 
 Run tests:
@@ -90,6 +91,32 @@ cli.run();
 ```
 
 See [examples/README.md](../examples/README.md) for runnable programs.
+
+## Diagnostics (logging)
+
+When `WSCPP_ENABLE_LOGGING=ON` (default), wscpp writes **error-level** diagnostics to **stderr** via [spdlog](https://github.com/gabime/spdlog). Logs include errors that were previously silent inside the library (ignored I/O results, accept failures, protocol violations) as well as errors delivered through `set_on_error`.
+
+Example line:
+
+```text
+[2026-06-07 20:18:43.670] [wscpp] [error] [connection] read frame header: End of file (2)
+```
+
+Adjust verbosity at runtime:
+
+```cpp
+#include <wscpp/log.hpp>
+
+wscpp::set_log_level(wscpp::log_level::debug);
+```
+
+Disable logging entirely at configure time (no spdlog fetch, zero-cost stubs):
+
+```bash
+cmake -B build -DWSCPP_ENABLE_LOGGING=OFF
+```
+
+Successful WebSocket traffic does not emit logs on the hot path; roundtrip latency is unchanged within measurement noise.
 
 ## API overview
 

@@ -113,3 +113,11 @@
 **State:** `master`, VERSION 1.1.0; LAN numbers measured on `deploy@192.168.1.165`.
 
 **Next:** commit LAN benchmark + doc updates; optional CI job publishing LAN numbers on demand.
+
+## 2026-06-07 — spdlog diagnostics backend (v1.1.0, unreleased)
+
+**Done:** Optional internal logging via spdlog (`WSCPP_ENABLE_LOGGING`, default ON). Errors logged to stderr even without `on_error` callback; suppressed close/accept/shutdown failures instrumented. Public `wscpp::set_log_level()`. Docs updated (user + developer guides, CHANGELOG). 94/94 tests pass; roundtrip bench ON vs OFF within noise (~1–3%).
+
+**State:** `master`, VERSION 1.1.0.
+
+**Next:** release tag when unreleased items are batched.

@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <wscpp/detail/log.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/error.hpp>
 #include <wscpp/net/linux_socket.hpp>
@@ -89,7 +90,10 @@ std::error_code linux_socket::adopt(int fd) {
 
 void linux_socket::close() {
     if (ssl_) {
-        SSL_shutdown(ssl_);
+        const int rc = SSL_shutdown(ssl_);
+        if (rc < 0) {
+            detail::log_error("linux_socket", "SSL_shutdown failed");
+        }
         SSL_free(ssl_);
         ssl_ = nullptr;
     }

@@ -1,5 +1,6 @@
 #include <utility>
 #include <wscpp/connection.hpp>
+#include <wscpp/detail/log.hpp>
 #include <wscpp/detail/make_unique.hpp>
 #include <wscpp/detail/mask.hpp>
 #include <wscpp/detail/utf8.hpp>
@@ -97,6 +98,7 @@ class connection::impl {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
             socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
+            detail::log_error_ec("connection", "close frame write", ec);
         }
         is_open_ = false;
         socket_.close();
@@ -237,15 +239,14 @@ class connection::impl {
     }
 
     void fail_with_close(uint16_t code, const std::string &reason) {
-        if (on_error_) {
-            on_error_(reason);
-        }
+        detail::emit_error(on_error_, "connection", reason);
         if (is_open_ && !is_closing_) {
             is_closing_ = true;
             frame_builder_.build_close_into(outbound_frame_, code, reason, outbound_mask());
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
             socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
+            detail::log_error_ec("connection", "fail_with_close frame write", ec);
         }
         is_open_ = false;
         socket_.close();
@@ -387,17 +388,13 @@ class connection::impl {
         }
         std::error_code ec;
         if (!read_exact(header_buffer_, 2, ec)) {
-            if (ec && on_error_) {
-                on_error_(ec.message());
-            }
+            detail::emit_error_ec(on_error_, "connection", "read frame header", ec);
             is_open_ = false;
             return false;
         }
         parse_header(ec);
         if (ec) {
-            if (on_error_) {
-                on_error_(ec.message());
-            }
+            detail::emit_error_ec(on_error_, "connection", "parse frame header", ec);
             is_open_ = false;
             return false;
         }
@@ -533,6 +530,7 @@ class connection::impl {
             std::lock_guard<std::mutex> lock(write_mutex_);
             std::error_code ec;
             socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
+            detail::log_error_ec("connection", "close frame write", ec);
         }
         is_open_ = false;
         if (on_close_) {
@@ -555,9 +553,7 @@ class connection::impl {
         }
         std::error_code ec;
         socket_.write(outbound_frame_.data(), outbound_frame_.size(), ec);
-        if (ec && on_error_) {
-            on_error_(ec.message());
-        }
+        detail::emit_error_ec(on_error_, "connection", "pong frame write", ec);
     }
 
     frame::builder frame_builder_;

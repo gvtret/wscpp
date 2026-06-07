@@ -1,5 +1,6 @@
 add_library(wscpp STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/error.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/wscpp.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/frame/parser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/frame/builder.cpp
@@ -58,6 +59,13 @@ target_link_libraries(wscpp
         Threads::Threads
 )
 
+if(WSCPP_ENABLE_LOGGING)
+    target_compile_definitions(wscpp PRIVATE WSCPP_ENABLE_LOGGING=1)
+    target_include_directories(wscpp PRIVATE ${spdlog_SOURCE_DIR}/include)
+else()
+    target_compile_definitions(wscpp PRIVATE WSCPP_ENABLE_LOGGING=0)
+endif()
+
 set_target_properties(wscpp PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
@@ -65,9 +73,3 @@ set_target_properties(wscpp PROPERTIES
 )
 
 wscpp_target_strict_warnings(wscpp)
-
-install(EXPORT wscppTargets
-    FILE wscppTargets.cmake
-    NAMESPACE wscpp::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/wscpp
-)
