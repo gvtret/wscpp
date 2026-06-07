@@ -1,6 +1,11 @@
 #ifndef WSCPP_FRAME_BUILDER_HPP
 #define WSCPP_FRAME_BUILDER_HPP
 
+/**
+ * @file builder.hpp
+ * @brief RFC 6455 WebSocket frame builder.
+ */
+
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -10,13 +15,15 @@
 namespace wscpp {
 namespace frame {
 
-// WebSocket frame builder
+/**
+ * @brief Builds RFC 6455 WebSocket frames (with optional masking).
+ */
 class builder {
 public:
     builder();
     ~builder();
-    
-    // Build a frame
+
+    /** @brief Build raw frame with given opcode and payload. */
     std::vector<uint8_t> build(
         opcode op,
         const uint8_t* data,
@@ -25,47 +32,47 @@ public:
         bool mask = false,
         const std::array<uint8_t, 4>& masking_key = {{0, 0, 0, 0}}
     );
-    
-    // Build a text frame
+
+    /** @brief Build text (UTF-8) frame. */
     std::vector<uint8_t> build_text(
         const std::string& text,
         bool fin = true,
         bool mask = false
     );
-    
-    // Build a binary frame
+
+    /** @brief Build binary frame. */
     std::vector<uint8_t> build_binary(
         const uint8_t* data,
         size_t size,
         bool fin = true,
         bool mask = false
     );
-    
-    // Build a close frame
+
+    /** @brief Build close frame with status code and optional reason. */
     std::vector<uint8_t> build_close(
         uint16_t status_code,
         const std::string& reason = "",
         bool mask = false
     );
-    
-    // Build a ping frame
+
+    /** @brief Build ping frame. */
     std::vector<uint8_t> build_ping(
         const uint8_t* data,
         size_t size,
         bool mask = false
     );
-    
-    // Build a pong frame
+
+    /** @brief Build pong frame. */
     std::vector<uint8_t> build_pong(
         const uint8_t* data,
         size_t size,
         bool mask = false
     );
-    
+
 private:
     std::array<uint8_t, 4> generate_masking_key();
     void mask_data(uint8_t* data, size_t size, const std::array<uint8_t, 4>& key);
-    
+
     std::array<uint8_t, 4> masking_key_;
 };
 

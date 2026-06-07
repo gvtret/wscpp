@@ -1,6 +1,11 @@
 #ifndef WSCPP_NET_ASIO_SOCKET_HPP
 #define WSCPP_NET_ASIO_SOCKET_HPP
 
+/**
+ * @file asio_socket.hpp
+ * @brief TCP socket wrapper with optional TLS (ASIO).
+ */
+
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <memory>
@@ -9,6 +14,9 @@
 namespace wscpp {
 namespace net {
 
+/**
+ * @brief Sync TCP/TLS stream used by @ref wscpp::connection.
+ */
 class asio_socket {
 public:
     using tcp = asio::ip::tcp;
@@ -35,9 +43,15 @@ public:
 
     bool is_open() const;
 
+    /** @brief Wrap socket with TLS using @p ctx. */
     void enable_ssl(std::shared_ptr<ssl_context> ctx);
+
+    /** @brief Set TLS SNI hostname (client, before handshake). */
     void set_ssl_hostname(const std::string& host);
+
+    /** @brief Perform TLS handshake (@p as_client true for client role). */
     void ssl_handshake(bool as_client);
+
     bool is_ssl() const;
 
 private:

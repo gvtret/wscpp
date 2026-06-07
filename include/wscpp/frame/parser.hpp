@@ -1,6 +1,11 @@
 #ifndef WSCPP_FRAME_PARSER_HPP
 #define WSCPP_FRAME_PARSER_HPP
 
+/**
+ * @file parser.hpp
+ * @brief RFC 6455 WebSocket frame parser.
+ */
+
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -9,51 +14,58 @@
 namespace wscpp {
 namespace frame {
 
-// WebSocket opcode types
+/** @brief WebSocket frame opcode (RFC 6455). */
 enum class opcode : uint8_t {
-    CONTINUATION = 0x0,
-    TEXT         = 0x1,
-    BINARY       = 0x2,
-    CLOSE        = 0x8,
-    PING         = 0x9,
-    PONG         = 0xA
+    CONTINUATION = 0x0, ///< Continuation frame
+    TEXT         = 0x1, ///< Text frame
+    BINARY       = 0x2, ///< Binary frame
+    CLOSE        = 0x8, ///< Connection close
+    PING         = 0x9, ///< Ping
+    PONG         = 0xA  ///< Pong
 };
 
-// WebSocket frame structure
+/** @brief Parsed WebSocket frame header fields. */
 struct frame_header {
-    bool fin;              // Final fragment
-    bool rsv1;             // Reserved bits
-    bool rsv2;
-    bool rsv3;
-    opcode op;             // Opcode
-    bool mask;             // Mask flag
-    uint64_t payload_len;  // Payload length
-    std::array<uint8_t, 4> masking_key; // Masking key (if mask is true)
+    bool fin;              ///< FIN bit
+    bool rsv1;             ///< RSV1 reserved
+    bool rsv2;             ///< RSV2 reserved
+    bool rsv3;             ///< RSV3 reserved
+    opcode op;             ///< Frame opcode
+    bool mask;             ///< Payload masked (client-to-server)
+    uint64_t payload_len;  ///< Payload length in bytes
+    std::array<uint8_t, 4> masking_key; ///< Masking key when mask is true
 };
 
-// Parse result
+/** @brief Incremental parse status. */
 enum class parse_result {
-    INCOMPLETE,  // Need more data
-    COMPLETE,    // Frame fully parsed
-    ERROR        // Parse error
+    INCOMPLETE,  ///< Need more bytes
+    COMPLETE,    ///< One full frame parsed
+    ERROR        ///< Protocol error
 };
 
-// WebSocket frame parser
+/**
+ * @brief Incremental RFC 6455 frame parser.
+ */
 class parser {
 public:
     parser();
     ~parser();
-    
-    // Parse incoming data
+
+    /**
+     * @brief Feed bytes into parser.
+     * @return COMPLETE when one frame is ready in @p header and @p payload.
+     */
     parse_result parse(const uint8_t* data, size_t size, frame_header& header, std::vector<uint8_t>& payload);
-    
-    // Reset parser state
+
+    /** @brief Reset parser for next frame. */
     void reset();
-    
-    // Get current state
+
+    /** @brief Bytes still needed to advance current state. */
     size_t bytes_needed() const;
+
+    /** @brief True when between frames. */
     bool is_frame_complete() const;
-    
+
 private:
     enum class state {
         HEADER,
@@ -61,15 +73,14 @@ private:
         MASKING_KEY,
         PAYLOAD
     };
-    
+
     state state_;
     frame_header header_;
     std::vector<uint8_t> buffer_;
     size_t bytes_read_;
     size_t payload_remaining_;
     bool mask_set_;
-    
-    // Helper functions
+
     void unmask_payload(std::vector<uint8_t>& payload);
     parse_result parse_header(const uint8_t* data, size_t size, size_t& consumed);
     parse_result parse_payload_length(const uint8_t* data, size_t size, size_t& consumed);
