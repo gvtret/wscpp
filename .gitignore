@@ -15,6 +15,7 @@ build/
 build-*/
 cmake-build-*/
 *.cmake
+!cmake/*.cmake
 CMakeCache.txt
 CMakeFiles/
 Makefile
