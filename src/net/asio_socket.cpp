@@ -1,124 +1,201 @@
 #include <wscpp/net/asio_socket.hpp>
+#include <wscpp/detail/make_unique.hpp>
 #include <asio/connect.hpp>
-#include <asio/write.hpp>
 #include <asio/read.hpp>
-#include <asio/ssl/stream.hpp>
-#include <asio/buffer.hpp>
+#include <asio/read_until.hpp>
+#include <asio/write.hpp>
 #include <asio/error_code.hpp>
 #include <stdexcept>
 
-class wscpp::net::asio_socket::impl {
+namespace wscpp {
+namespace net {
+
+class asio_socket::impl {
 public:
-    impl(asio::io_context& io_context)
-        : tcp_socket_(io_context),
-          io_context_(io_context),
-          ssl_stream_(nullptr),
-          is_ssl_(false) {}
-    
-    ~impl() {
-        close();
-    }
-    
+    explicit impl(asio::io_context& io_context)
+        : io_context_(io_context),
+          socket_(io_context),
+          ssl_(nullptr),
+          ssl_enabled_(false) {}
+
     void connect(const std::string& host, const std::string& port) {
-        if (is_open()) {
-            close();
-        }
-        
         tcp::resolver resolver(io_context_);
-        auto endpoint_iterator = resolver.resolve(host, port);
-        asio::connect(tcp_socket_, endpoint_iterator);
+        tcp::resolver::results_type endpoints = resolver.resolve(host, port);
+        asio::connect(socket_, endpoints);
     }
-    
+
     void connect(const tcp::endpoint& endpoint) {
-        if (is_open()) {
-            close();
-        }
-        
-        tcp_socket_.connect(endpoint);
+        socket_.connect(endpoint);
     }
-    
+
+    void adopt(tcp::socket socket) {
+        socket_ = std::move(socket);
+    }
+
     void close() {
-        error_code ec;
-        tcp_socket_.shutdown(tcp::socket::shutdown_both, ec);
-        tcp_socket_.close(ec);
+        asio::error_code ec;
+        if (ssl_) {
+            ssl_->shutdown(ec);
+        }
+        socket_.shutdown(tcp::socket::shutdown_both, ec);
+        socket_.close(ec);
     }
-    
-    size_t write(const void* data, size_t size) {
-        if (is_ssl_ && ssl_stream_) {
-            return asio::write(*ssl_stream_, asio::buffer(data, size), ec_);
+
+    std::size_t write(const void* data, std::size_t size) {
+        asio::error_code ec;
+        std::size_t n = 0;
+        if (ssl_) {
+            n = asio::write(*ssl_, asio::buffer(data, size), ec);
         } else {
-            return asio::write(tcp_socket_, asio::buffer(data, size), ec_);
+            n = asio::write(socket_, asio::buffer(data, size), ec);
         }
+        if (ec) {
+            throw std::system_error(ec);
+        }
+        return n;
     }
-    
-    size_t read(void* data, size_t size) {
-        if (is_ssl_ && ssl_stream_) {
-            return asio::read(*ssl_stream_, asio::buffer(data, size), ec_);
+
+    std::size_t read(void* data, std::size_t size) {
+        asio::error_code ec;
+        std::size_t n = 0;
+        if (ssl_) {
+            n = asio::read(*ssl_, asio::buffer(data, size), ec);
         } else {
-            return asio::read(tcp_socket_, asio::buffer(data, size), ec_);
+            n = asio::read(socket_, asio::buffer(data, size), ec);
+        }
+        if (ec) {
+            throw std::system_error(ec);
+        }
+        return n;
+    }
+
+    std::size_t read_some(void* data, std::size_t size) {
+        asio::error_code ec;
+        std::size_t n = 0;
+        if (ssl_) {
+            n = ssl_->read_some(asio::buffer(data, size), ec);
+        } else {
+            n = socket_.read_some(asio::buffer(data, size), ec);
+        }
+        if (ec && ec != asio::error::would_block) {
+            throw std::system_error(ec);
+        }
+        return n;
+    }
+
+    std::size_t read_until(asio::streambuf& buf, const std::string& delim) {
+        asio::error_code ec;
+        std::size_t n = 0;
+        if (ssl_) {
+            n = asio::read_until(*ssl_, buf, delim, ec);
+        } else {
+            n = asio::read_until(socket_, buf, delim, ec);
+        }
+        if (ec) {
+            throw std::system_error(ec);
+        }
+        return n;
+    }
+
+    tcp::socket& native_socket() { return socket_; }
+    const tcp::socket& native_socket() const { return socket_; }
+
+    bool is_open() const { return socket_.is_open(); }
+
+    void enable_ssl(std::shared_ptr<ssl_context> ctx) {
+        if (!ctx) {
+            return;
+        }
+        ssl_context_ = ctx;
+        ssl_.reset(new asio::ssl::stream<tcp::socket&>(socket_, *ctx));
+        ssl_enabled_ = true;
+    }
+
+    void ssl_handshake(bool as_client) {
+        if (!ssl_) {
+            throw std::runtime_error("SSL not enabled");
+        }
+        asio::error_code ec;
+        if (as_client) {
+            ssl_->handshake(asio::ssl::stream_base::client, ec);
+        } else {
+            ssl_->handshake(asio::ssl::stream_base::server, ec);
+        }
+        if (ec) {
+            throw std::system_error(ec);
         }
     }
-    
-    bool is_open() const {
-        return tcp_socket_.is_open();
-    }
-    
-    void set_ssl_context(std::shared_ptr<ssl_context> ctx) {
-        if (ctx) {
-            ssl_stream_ = std::make_unique<asio::ssl::stream<tcp::socket&>>(tcp_socket_, *ctx);
-            is_ssl_ = true;
-        }
-    }
-    
-    bool is_ssl() const {
-        return is_ssl_;
-    }
-    
+
+    bool is_ssl() const { return ssl_enabled_; }
+
 private:
-    tcp::socket tcp_socket_;
     asio::io_context& io_context_;
-    std::unique_ptr<asio::ssl::stream<tcp::socket&>> ssl_stream_;
-    bool is_ssl_;
-    error_code ec_;
+    tcp::socket socket_;
+    std::shared_ptr<ssl_context> ssl_context_;
+    std::unique_ptr<asio::ssl::stream<tcp::socket&>> ssl_;
+    bool ssl_enabled_;
 };
 
-// Public interface
-wscpp::net::asio_socket::asio_socket()
-    : pimpl_(std::make_unique<impl>(asio::io_context())) {}
+asio_socket::asio_socket(asio::io_context& io_context)
+    : pimpl_(detail::make_unique<impl>(io_context)) {}
 
-wscpp::net::asio_socket::asio_socket(asio::io_context& io_context)
-    : pimpl_(std::make_unique<impl>(io_context)) {}
+asio_socket::~asio_socket() = default;
 
-wscpp::net::asio_socket::~asio_socket() = default;
-
-void wscpp::net::asio_socket::connect(const std::string& host, const std::string& port) {
+void asio_socket::connect(const std::string& host, const std::string& port) {
     pimpl_->connect(host, port);
 }
 
-void wscpp::net::asio_socket::connect(const tcp::endpoint& endpoint) {
+void asio_socket::connect(const tcp::endpoint& endpoint) {
     pimpl_->connect(endpoint);
 }
 
-void wscpp::net::asio_socket::close() {
+void asio_socket::adopt(tcp::socket socket) {
+    pimpl_->adopt(std::move(socket));
+}
+
+void asio_socket::close() {
     pimpl_->close();
 }
 
-size_t wscpp::net::asio_socket::write(const void* data, size_t size) {
+std::size_t asio_socket::write(const void* data, std::size_t size) {
     return pimpl_->write(data, size);
 }
 
-size_t wscpp::net::asio_socket::read(void* data, size_t size) {
+std::size_t asio_socket::read(void* data, std::size_t size) {
     return pimpl_->read(data, size);
 }
 
-bool wscpp::net::asio_socket::is_open() const {
+std::size_t asio_socket::read_some(void* data, std::size_t size) {
+    return pimpl_->read_some(data, size);
+}
+
+std::size_t asio_socket::read_until(asio::streambuf& buf, const std::string& delim) {
+    return pimpl_->read_until(buf, delim);
+}
+
+asio_socket::tcp::socket& asio_socket::native_socket() {
+    return pimpl_->native_socket();
+}
+
+const asio_socket::tcp::socket& asio_socket::native_socket() const {
+    return pimpl_->native_socket();
+}
+
+bool asio_socket::is_open() const {
     return pimpl_->is_open();
 }
 
-void wscpp::net::asio_socket::set_ssl_context(std::shared_ptr<ssl_context> ctx) {
-    pimpl_->set_ssl_context(ctx);
+void asio_socket::enable_ssl(std::shared_ptr<ssl_context> ctx) {
+    pimpl_->enable_ssl(ctx);
 }
 
-bool wscpp::net::asio_socket::is_ssl() const {
+void asio_socket::ssl_handshake(bool as_client) {
+    pimpl_->ssl_handshake(as_client);
+}
+
+bool asio_socket::is_ssl() const {
     return pimpl_->is_ssl();
 }
+
+} // namespace net
+} // namespace wscpp

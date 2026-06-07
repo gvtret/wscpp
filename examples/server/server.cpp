@@ -21,7 +21,8 @@ int main(int argc, char* argv[]) {
         
         // Set callbacks
         srv.set_on_connection([&](std::shared_ptr<connection> conn) {
-            std::cout << "New connection from " << conn->socket().native_handle().remote_endpoint() << std::endl;
+            std::cout << "New connection from "
+                      << conn->socket().native_socket().remote_endpoint() << std::endl;
             
             // Set per-connection callbacks
             conn->set_on_message([conn](const std::vector<uint8_t>& data, frame::opcode op) {
@@ -47,7 +48,7 @@ int main(int argc, char* argv[]) {
         
         // Start server (blocking)
         srv.start();
-        
+        srv.join();
     } catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;
         return 1;

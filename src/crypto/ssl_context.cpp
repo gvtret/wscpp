@@ -2,6 +2,7 @@
 #include <asio/ssl/context.hpp>
 #include <asio/ssl/error.hpp>
 #include <asio/ssl/verify_mode.hpp>
+#include <asio/error_code.hpp>
 #include <stdexcept>
 
 namespace wscpp {
@@ -59,19 +60,19 @@ void ssl_context::set_verify_depth(int depth) {
 }
 
 bool ssl_context::load_verify_file(const std::string& path) {
-    error_code ec;
+    asio::error_code ec;
     context_->load_verify_file(path, ec);
     return !ec;
 }
 
 bool ssl_context::load_cert_chain(const std::string& path) {
-    error_code ec;
+    asio::error_code ec;
     context_->use_certificate_chain_file(path, ec);
     return !ec;
 }
 
 bool ssl_context::load_private_key(const std::string& path) {
-    error_code ec;
+    asio::error_code ec;
     context_->use_private_key_file(path, asio::ssl::context::pem, ec);
     return !ec;
 }

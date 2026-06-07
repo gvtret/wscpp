@@ -50,6 +50,7 @@ public:
     // Run server
     void start();
     void stop();
+    void join();
     
     // State
     bool is_running() const;

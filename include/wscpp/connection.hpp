@@ -21,7 +21,7 @@ public:
     using socket_type = net::asio_socket;
     
     // Callback types
-    using message_callback = std::function<void(const std::vector<uint8_t>&, opcode)>;
+    using message_callback = std::function<void(const std::vector<uint8_t>&, frame::opcode)>;
     using close_callback = std::function<void(uint16_t, const std::string&)>;
     using error_callback = std::function<void(const std::string&)>;
     using open_callback = std::function<void()>;
@@ -36,6 +36,9 @@ public:
     // Connection management
     void connect(const std::string& host, const std::string& port);
     void connect(const tcp::endpoint& endpoint);
+    void adopt(tcp::socket socket);
+    void activate();
+    void start_reading();
     void close(uint16_t status_code = 1000, const std::string& reason = "");
     
     // I/O operations

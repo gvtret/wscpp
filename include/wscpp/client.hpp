@@ -66,7 +66,6 @@ private:
     };
     
     url_info parse_url(const std::string& url);
-    void do_connect(const url_info& url);
     
     class impl;
     std::unique_ptr<impl> pimpl_;
