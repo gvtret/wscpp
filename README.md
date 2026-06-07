@@ -2,6 +2,8 @@
 
 Lightweight WebSocket stack for **`C++11`** with optional TLS (`wss://`).
 
+This repository also ships **ws-rs** — a Rust reimplementation of the same protocol stack (`rust/ws-rs`), with independent SemVer and C++-parity benchmarks.
+
 > **Experimental / AI-built.** wscpp is an experimental library, not a production-grade product. The entire codebase was created with AI coding agents (LLMs); humans curate tests, CI, and releases, but you should expect gaps, API churn, and undiscovered bugs. Do not use in production without independent review.
 
 [![CI](https://github.com/gvtret/wscpp/actions/workflows/ci.yml/badge.svg)](https://github.com/gvtret/wscpp/actions/workflows/ci.yml)
@@ -16,9 +18,9 @@ Lightweight WebSocket stack for **`C++11`** with optional TLS (`wss://`).
 - **ws-rs** Rust companion crate (`rust/ws-rs`, independent SemVer)
 - CMake build, SemVer versioning, Doxygen API docs
 
-**Version:** 1.1.0
+**Version:** 1.1.0 (C++ `wscpp`) · **0.4.0** ([ws-rs](rust/ws-rs))
 
-## Quick build
+## Quick build (C++)
 
 ```bash
 git clone https://github.com/gvtret/wscpp.git
@@ -28,6 +30,17 @@ cmake --build build
 cd build && ctest --output-on-failure
 ```
 
+## Quick build (Rust / ws-rs)
+
+```bash
+cd rust
+cargo test --workspace -- --test-threads=1
+cargo run -p echo_server --release -- 8080
+cargo run -p echo_client --release -- ws://127.0.0.1:8080/ hello
+```
+
+See [rust/README.md](rust/README.md) for `wss://`, blocking API, and benchmarks.
+
 ## Documentation
 
 | Document | Description |
@@ -36,8 +49,9 @@ cd build && ctest --output-on-failure
 | [Developer guide](docs/DEVELOPER.md) | Architecture, testing, releases |
 | [Examples](examples/README.md) | ws:// and wss:// echo programs |
 | [Analysis](ANALYSIS.md) | **`C++11`** WebSocket library comparison |
+| [Rust workspace](rust/README.md) | **ws-rs** quick start, examples, benchmarks |
 | [Rust guide](docs/RUST.md) | **ws-rs** architecture, API, fmt/clippy, releases |
-| [Rust analysis](ANALYSIS_RUST.md) | **ws-rs** benchmarks + peer comparison |
+| [Rust analysis](ANALYSIS_RUST.md) | **ws-rs** vs tokio-tungstenite, fastwebsockets, … |
 | [Changelog](CHANGELOG.md) | Release history |
 | [AGENTS.md](AGENTS.md) | Guidelines for AI coding agents working on this repo |
 | API reference | `cmake --build build --target docs` → `build/docs/html/index.html` |
