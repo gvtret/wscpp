@@ -19,6 +19,12 @@
 
 namespace wscpp {
 
+/** @brief Endpoint role for RFC 6455 masking rules. */
+enum class connection_role {
+    client, ///< Masks outbound frames; expects unmasked inbound
+    server  ///< Unmasked outbound; expects masked inbound from peer
+};
+
 /**
  * @brief A single WebSocket connection over TCP or TLS.
  */
@@ -66,6 +72,15 @@ public:
 
     /** @brief Send binary frame. */
     void send_binary(const uint8_t* data, size_t size, bool fin = true);
+
+    /** @brief Send continuation fragment (after TEXT/BINARY with fin=false). */
+    void send_continuation(const uint8_t* data, size_t size, bool fin = true);
+
+    /** @brief Send ping control frame (RFC 6455 §5.5). */
+    void send_ping(const uint8_t* data = nullptr, size_t size = 0);
+
+    /** @brief Set client/server role for RFC 6455 masking (default: server). */
+    void set_role(connection_role role);
 
     void set_on_open(open_callback cb);
     void set_on_message(message_callback cb);

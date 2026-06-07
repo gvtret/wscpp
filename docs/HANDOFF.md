@@ -16,3 +16,9 @@
 **State:** `main`, VERSION 1.0.0, tag `v1.0.0`.
 **Next:** Optional F2 expansion (Beast/IXWebSocket); post-v1.0 features (permessage-deflate).
 **Notes:** Roundtrip bench must not call `client.run()` — io_context is idle; use wait loop like integration tests.
+
+## 2026-06-07 — RFC 6455 protocol completion (post-v1.0.0)
+
+**Done:** Client outbound masking; server/client inbound mask validation; RSV/opcode checks; fragmented message reassembly; auto pong; close code validation; `send_continuation`/`send_ping`; integration tests (fragmented echo, ping). 82/82 tests pass.
+**State:** `main`, VERSION 1.0.0; RFC gate ready for benchmark re-run (except RFC 7692).
+**Next:** Re-run `benchmarks/` and refresh ANALYSIS.md tables; optional UTF-8 text validation.

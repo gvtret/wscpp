@@ -58,3 +58,27 @@ TEST(Rfc6455Compliance, InvalidOpcodeRejected) {
     std::vector<uint8_t> payload;
     EXPECT_EQ(p.parse(raw, sizeof(raw), header, payload), parse_result::ERROR);
 }
+
+TEST(Rfc6455Compliance, FragmentedFramesParseSeparately) {
+    builder b;
+    const std::string text = "fragmented message";
+    const std::vector<uint8_t> frag1 = b.build_text(text.substr(0, 10), false, false);
+    const std::vector<uint8_t> frag2 = b.build(
+        opcode::CONTINUATION,
+        reinterpret_cast<const uint8_t*>(text.data() + 10),
+        text.size() - 10, true, false);
+
+    parser p;
+    frame_header header;
+    std::vector<uint8_t> payload;
+
+    EXPECT_EQ(p.parse(frag1.data(), frag1.size(), header, payload), parse_result::COMPLETE);
+    EXPECT_FALSE(header.fin);
+    EXPECT_EQ(header.op, opcode::TEXT);
+
+    p.reset();
+    EXPECT_EQ(p.parse(frag2.data(), frag2.size(), header, payload), parse_result::COMPLETE);
+    EXPECT_TRUE(header.fin);
+    EXPECT_EQ(header.op, opcode::CONTINUATION);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()), text.substr(10));
+}

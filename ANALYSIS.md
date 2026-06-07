@@ -1,10 +1,24 @@
 # WebSocket Libraries for C++11 — Comparative Analysis
 
-> Draft catalog and methodology for wscpp v1.0. Benchmark results (F2) to be filled when comparative harness is complete.
+> Draft catalog and methodology for wscpp. Comparative numbers below are **preliminary** — see [When to benchmark](#when-to-benchmark).
 
 ## Methodology
 
 **Inclusion criterion:** official support for C++11 (or C callable from C++11 without requiring a newer standard).
+
+### When to benchmark
+
+**Run comparative benchmarks only after RFC-mandated behaviour is implemented and covered by tests.** Otherwise numbers reflect an incomplete stack, not the final product.
+
+Gate checklist (non-exhaustive):
+
+| RFC | Scope | Status for benchmarking |
+|-----|--------|-------------------------|
+| [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) | Framing (§5), handshake (§4), close (§7), ping/pong (§5.5), fragmentation | **Implemented** — masking, reassembly, control frames; UTF-8 validation optional |
+| [RFC 2818](https://www.rfc-editor.org/rfc/rfc2818) | `wss://` TLS + server identity (SNI) | **Implemented** — basic WSS path + SNI |
+| [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692) | permessage-deflate | Post-v1.0; exclude from v1.0 baseline |
+
+The harness in `benchmarks/` is kept for regression and iteration, but **ANALYSIS.md results must be refreshed** after the RFC checklist is green. Until then, treat existing tables as smoke-test baselines only.
 
 **Comparison dimensions:**
 
@@ -75,6 +89,8 @@
 - Fewer features than websocketpp/Beast (by design — lightweight scope)
 
 ## Benchmark results
+
+> **Preliminary (v1.0.0).** Measured before full RFC coverage review. Do not use for release positioning until re-run per [When to benchmark](#when-to-benchmark).
 
 Measured on Linux/WSL2, Release build, GCC 15, local echo (100 samples, 64 KiB throughput test).
 

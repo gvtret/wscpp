@@ -59,6 +59,9 @@ public:
     /** @brief Send a binary WebSocket frame. */
     void send_binary(const uint8_t* data, size_t size, bool fin = true);
 
+    /** @brief Send continuation fragment (multi-frame message). */
+    void send_continuation(const std::string& data, bool fin = true);
+
     /** @brief Register callback invoked after WebSocket handshake completes. */
     void set_on_open(open_callback cb);
 

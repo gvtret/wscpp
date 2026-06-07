@@ -24,6 +24,7 @@ public:
           connection_(io_context_),
           is_open_(false),
           is_closing_(false) {
+        connection_.set_role(connection_role::client);
         ssl_context_ = std::make_shared<asio::ssl::context>(asio::ssl::context::tlsv12_client);
         ssl_context_->set_verify_mode(asio::ssl::verify_none);
     }
@@ -64,6 +65,11 @@ public:
 
     void send_binary(const uint8_t* data, size_t size, bool fin) {
         connection_.send_binary(data, size, fin);
+    }
+
+    void send_continuation(const std::string& data, bool fin) {
+        connection_.send_continuation(
+            reinterpret_cast<const uint8_t*>(data.data()), data.size(), fin);
     }
 
     void set_on_open(open_callback cb) { connection_.set_on_open(cb); }
@@ -156,6 +162,10 @@ void client::send_text(const std::string& text, bool fin) {
 
 void client::send_binary(const uint8_t* data, size_t size, bool fin) {
     pimpl_->send_binary(data, size, fin);
+}
+
+void client::send_continuation(const std::string& data, bool fin) {
+    pimpl_->send_continuation(data, fin);
 }
 
 void client::set_on_open(open_callback cb) {

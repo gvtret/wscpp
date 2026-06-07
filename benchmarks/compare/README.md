@@ -2,6 +2,8 @@
 
 Side-by-side scenarios for C++11 WebSocket libraries. Built when `WSCPP_BUILD_BENCHMARKS=ON`.
 
+**Policy:** use for development smoke tests until wscpp passes the RFC gate in `ANALYSIS.md`. Re-run and update published tables after RFC 6455/2818 coverage is complete.
+
 ## Included in-tree
 
 | Target | Library | Version | Scenarios |

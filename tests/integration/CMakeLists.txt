@@ -3,6 +3,7 @@ project(wscpp_tests_integration LANGUAGES CXX)
 
 add_executable(wscpp_test_integration
     test_client_server.cpp
+    test_rfc6455_protocol.cpp
 )
 
 target_link_libraries(wscpp_test_integration

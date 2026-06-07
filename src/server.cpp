@@ -118,6 +118,7 @@ private:
 
     void handle_accept(std::shared_ptr<tcp::socket> socket) {
         std::shared_ptr<connection> conn(new connection(io_context_));
+        conn->set_role(connection_role::server);
 
         conn->set_on_message([this, conn](const std::vector<uint8_t>& data, frame::opcode op) {
             if (on_message_) {

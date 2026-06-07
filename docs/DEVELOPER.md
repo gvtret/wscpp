@@ -67,6 +67,9 @@ Targets:
 | `wscpp_test_stress` | Stress tests (requires `-DWSCPP_ENABLE_STRESS_TESTS=ON`) |
 | `bench_frame_parse`, `bench_masking`, `bench_roundtrip` | Micro-benchmarks (`-DWSCPP_BUILD_BENCHMARKS=ON`) |
 | `bench_websocketpp_roundtrip` | Comparative latency vs websocketpp |
+
+Micro-benchmarks are for development regression. **Publish comparative results in `ANALYSIS.md` only after RFC-mandated behaviour is complete** (see `benchmarks/README.md` and `ANALYSIS.md` → *When to benchmark*).
+
 | `docs` | Doxygen HTML |
 | `wscpp_example_*` | Example binaries |
 

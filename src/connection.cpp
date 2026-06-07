@@ -14,10 +14,13 @@ public:
     explicit impl(asio::io_context& io_context)
         : socket_(io_context),
           io_context_(io_context),
+          role_(connection_role::server),
           is_open_(false),
           is_closing_(false),
           expecting_close_(false),
-          reader_running_(false) {}
+          reader_running_(false),
+          fragmented_(false),
+          message_opcode_(frame::opcode::TEXT) {}
 
     ~impl() {
         is_open_ = false;
@@ -63,9 +66,13 @@ public:
         if (!is_open_ || is_closing_) {
             return;
         }
+        if (!is_valid_close_code(status_code)) {
+            status_code = 1000;
+        }
         is_closing_ = true;
         frame::builder b;
-        std::vector<uint8_t> close_frame = b.build_close(status_code, reason, false);
+        std::vector<uint8_t> close_frame =
+            b.build_close(status_code, reason, outbound_mask());
         try {
             socket_.write(close_frame.data(), close_frame.size());
         } catch (...) {
@@ -82,22 +89,29 @@ public:
     }
 
     void send_text(const std::string& text, bool fin) {
-        if (!is_open_) {
-            throw std::runtime_error("Connection not open");
-        }
-        frame::builder b;
-        std::vector<uint8_t> frame = b.build_text(text, fin, false);
-        socket_.write(frame.data(), frame.size());
+        send_data_frame(frame::opcode::TEXT,
+                        reinterpret_cast<const uint8_t*>(text.data()), text.size(), fin);
     }
 
     void send_binary(const uint8_t* data, size_t size, bool fin) {
+        send_data_frame(frame::opcode::BINARY, data, size, fin);
+    }
+
+    void send_continuation(const uint8_t* data, size_t size, bool fin) {
+        send_data_frame(frame::opcode::CONTINUATION, data, size, fin);
+    }
+
+    void send_ping(const uint8_t* data, size_t size) {
         if (!is_open_) {
             throw std::runtime_error("Connection not open");
         }
         frame::builder b;
-        std::vector<uint8_t> frame = b.build_binary(data, size, fin, false);
+        const std::vector<uint8_t> frame =
+            b.build_ping(data, size, outbound_mask());
         socket_.write(frame.data(), frame.size());
     }
+
+    void set_role(connection_role role) { role_ = role; }
 
     void set_on_open(open_callback cb) { on_open_ = cb; }
     void set_on_message(message_callback cb) { on_message_ = cb; }
@@ -110,6 +124,92 @@ public:
     const socket_type& socket() const { return socket_; }
 
 private:
+    bool outbound_mask() const {
+        return role_ == connection_role::client;
+    }
+
+    void send_data_frame(frame::opcode op, const uint8_t* data, size_t size, bool fin) {
+        if (!is_open_) {
+            throw std::runtime_error("Connection not open");
+        }
+        frame::builder b;
+        const std::vector<uint8_t> frame =
+            b.build(op, data, size, fin, outbound_mask());
+        socket_.write(frame.data(), frame.size());
+    }
+
+    static bool is_valid_close_code(uint16_t code) {
+        if (code < 1000) {
+            return false;
+        }
+        if (code >= 1000 && code <= 1003) {
+            return true;
+        }
+        if (code >= 1004 && code <= 1006) {
+            return false;
+        }
+        if (code >= 1007 && code <= 1011) {
+            return true;
+        }
+        if (code >= 1012 && code <= 2999) {
+            return false;
+        }
+        return code <= 4999;
+    }
+
+    void fail_protocol(const std::string& reason) {
+        if (on_error_) {
+            on_error_(reason);
+        }
+        if (is_open_ && !is_closing_) {
+            is_closing_ = true;
+            frame::builder b;
+            const std::vector<uint8_t> close_frame =
+                b.build_close(1002, reason, outbound_mask());
+            try {
+                socket_.write(close_frame.data(), close_frame.size());
+            } catch (...) {
+            }
+        }
+        is_open_ = false;
+        try {
+            socket_.close();
+        } catch (...) {
+        }
+    }
+
+    bool validate_frame_header() {
+        if (current_header_.rsv1 || current_header_.rsv2 || current_header_.rsv3) {
+            fail_protocol("RSV bits set without extension negotiation");
+            return false;
+        }
+        const uint8_t op_val = static_cast<uint8_t>(current_header_.op);
+        if (!((op_val <= 0x02) || (op_val >= 0x08 && op_val <= 0x0A))) {
+            fail_protocol("Invalid frame opcode");
+            return false;
+        }
+        if (role_ == connection_role::server && !current_header_.mask) {
+            fail_protocol("Client frame must be masked");
+            return false;
+        }
+        if (role_ == connection_role::client && current_header_.mask) {
+            fail_protocol("Server frame must not be masked");
+            return false;
+        }
+        return true;
+    }
+
+    void deliver_message(const std::vector<uint8_t>& payload, frame::opcode op) {
+        if (on_message_) {
+            on_message_(payload, op);
+        }
+    }
+
+    void reset_fragment_state() {
+        fragmented_ = false;
+        message_buffer_.clear();
+        message_opcode_ = frame::opcode::TEXT;
+    }
     void open_and_start_reader() {
         is_open_ = true;
         if (on_open_) {
@@ -212,6 +312,10 @@ private:
             }};
         }
 
+        if (!validate_frame_header()) {
+            return;
+        }
+
         read_payload();
     }
 
@@ -247,9 +351,36 @@ private:
             return;
         }
 
-        if (on_message_) {
-            on_message_(payload_buffer_, op);
+        if (op == frame::opcode::CONTINUATION) {
+            if (!fragmented_) {
+                fail_protocol("Unexpected continuation frame");
+                return;
+            }
+            message_buffer_.insert(message_buffer_.end(),
+                                   payload_buffer_.begin(), payload_buffer_.end());
+            if (current_header_.fin) {
+                deliver_message(message_buffer_, message_opcode_);
+                reset_fragment_state();
+            }
+            return;
         }
+
+        if (op == frame::opcode::TEXT || op == frame::opcode::BINARY) {
+            if (fragmented_) {
+                fail_protocol("New data frame before fragmented message completed");
+                return;
+            }
+            if (!current_header_.fin) {
+                fragmented_ = true;
+                message_opcode_ = op;
+                message_buffer_ = payload_buffer_;
+                return;
+            }
+            deliver_message(payload_buffer_, op);
+            return;
+        }
+
+        fail_protocol("Unsupported data frame opcode");
     }
 
     void handle_close_frame() {
@@ -260,10 +391,14 @@ private:
             status_code = static_cast<uint16_t>(
                 (static_cast<uint16_t>(payload_buffer_[0]) << 8) |
                 payload_buffer_[1]);
+            if (!is_valid_close_code(status_code)) {
+                status_code = 1002;
+            }
             reason = std::string(payload_buffer_.begin() + 2, payload_buffer_.end());
         }
         frame::builder b;
-        std::vector<uint8_t> close_frame = b.build_close(status_code, "", false);
+        const std::vector<uint8_t> close_frame =
+            b.build_close(status_code, "", outbound_mask());
         try {
             socket_.write(close_frame.data(), close_frame.size());
         } catch (...) {
@@ -276,13 +411,14 @@ private:
 
     void handle_ping_frame() {
         frame::builder b;
-        std::vector<uint8_t> pong_frame =
-            b.build_pong(payload_buffer_.data(), payload_buffer_.size(), false);
+        const std::vector<uint8_t> pong_frame =
+            b.build_pong(payload_buffer_.data(), payload_buffer_.size(), outbound_mask());
         socket_.write(pong_frame.data(), pong_frame.size());
     }
 
     socket_type socket_;
     asio::io_context& io_context_;
+    connection_role role_;
 
     uint8_t header_buffer_[2];
     uint8_t ext_payload_buffer_[8];
@@ -290,6 +426,9 @@ private:
 
     frame::frame_header current_header_;
     std::vector<uint8_t> payload_buffer_;
+    std::vector<uint8_t> message_buffer_;
+    bool fragmented_;
+    frame::opcode message_opcode_;
 
     bool is_open_;
     bool is_closing_;
@@ -338,6 +477,18 @@ void connection::send_text(const std::string& text, bool fin) {
 
 void connection::send_binary(const uint8_t* data, size_t size, bool fin) {
     pimpl_->send_binary(data, size, fin);
+}
+
+void connection::send_continuation(const uint8_t* data, size_t size, bool fin) {
+    pimpl_->send_continuation(data, size, fin);
+}
+
+void connection::send_ping(const uint8_t* data, size_t size) {
+    pimpl_->send_ping(data, size);
+}
+
+void connection::set_role(connection_role role) {
+    pimpl_->set_role(role);
 }
 
 void connection::set_on_open(open_callback cb) {
