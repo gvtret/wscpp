@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
 use crate::blocking::transport::StdStream;
@@ -8,6 +9,17 @@ use crate::extensions::permessage_deflate::{compress_message, decompress_message
 use crate::frame::{Frame, FrameBuilder, Opcode, ParseResult, Parser};
 use crate::types::{Message, Role};
 use crate::utf8;
+
+/// Socket read chunk size; larger reads reduce syscalls for big payloads.
+const READ_CHUNK: usize = 64 * 1024;
+
+/// Persistent inbound buffer so `read_frame` neither reallocates per call nor
+/// loses bytes pipelined after a completed frame.
+struct ReadState {
+    buf: Vec<u8>,
+    pos: usize,
+    scratch: Vec<u8>,
+}
 
 struct FragmentState {
     active: bool,
@@ -35,6 +47,7 @@ pub struct Connection {
     outbound: Mutex<Vec<u8>>,
     fragment: Mutex<FragmentState>,
     last_close: Mutex<Option<(u16, String)>>,
+    read_state: Mutex<ReadState>,
 }
 
 impl Connection {
@@ -55,6 +68,11 @@ impl Connection {
                 compressed: false,
             }),
             last_close: Mutex::new(None),
+            read_state: Mutex::new(ReadState {
+                buf: Vec::with_capacity(READ_CHUNK),
+                pos: 0,
+                scratch: vec![0u8; READ_CHUNK],
+            }),
         }
     }
 
@@ -97,14 +115,14 @@ impl Connection {
         let deflate = self.permessage_deflate();
         let mask = self.role == Role::Client;
 
-        let (payload, rsv1) = if cfg!(feature = "deflate")
+        let (payload, rsv1): (Cow<[u8]>, bool) = if cfg!(feature = "deflate")
             && deflate
             && fin
             && matches!(opcode, Opcode::Text | Opcode::Binary)
         {
-            (compress_message(data)?, true)
+            (Cow::Owned(compress_message(data)?), true)
         } else {
-            (data.to_vec(), false)
+            (Cow::Borrowed(data), false)
         };
 
         self.send_frame_into(|out| {
@@ -207,39 +225,49 @@ impl Connection {
             return Ok(None);
         }
 
-        let mut buf = vec![0u8; 4096];
-        let mut acc = Vec::new();
+        let mut rs = self.read_state.lock().unwrap();
+        let mut parser = self.parser.lock().unwrap();
 
         loop {
-            let result = {
-                let mut parser = self.parser.lock().unwrap();
-                let (result, consumed) = parser.parse(&acc);
-                if consumed > 0 {
-                    acc.drain(..consumed);
-                }
-                result
-            };
+            let (result, consumed) = parser.parse(&rs.buf[rs.pos..]);
+            rs.pos += consumed;
 
             match result {
                 ParseResult::Complete => {
-                    let frame = self.parser.lock().unwrap().frame();
+                    let frame = parser.take_frame();
+                    if rs.pos == rs.buf.len() {
+                        rs.buf.clear();
+                        rs.pos = 0;
+                    }
                     let deflate = self.permessage_deflate();
+                    drop(parser);
+                    drop(rs);
                     Self::validate_incoming(&frame.header, self.role, deflate)?;
                     return Ok(Some(frame));
                 }
                 ParseResult::Error => {
+                    drop(parser);
+                    drop(rs);
                     return self.fail_protocol("invalid frame");
                 }
                 ParseResult::Incomplete => {
+                    let pos = rs.pos;
+                    if pos > 0 {
+                        rs.buf.drain(..pos);
+                        rs.pos = 0;
+                    }
                     let n = {
                         let mut stream = self.stream.lock().unwrap();
-                        stream.read(&mut buf).map_err(Error::from)?
+                        stream.read(&mut rs.scratch).map_err(Error::from)?
                     };
                     if n == 0 {
+                        drop(parser);
+                        drop(rs);
                         *self.open.lock().unwrap() = false;
                         return Ok(None);
                     }
-                    acc.extend_from_slice(&buf[..n]);
+                    let st = &mut *rs;
+                    st.buf.extend_from_slice(&st.scratch[..n]);
                 }
             }
         }
@@ -309,12 +337,12 @@ impl Connection {
                     }
                     frag.buffer.extend_from_slice(&payload);
                     if fin {
-                        let msg = self.deliver_message(
-                            frag.opcode,
-                            frag.buffer.clone(),
-                            frag.compressed,
-                        )?;
+                        let opcode = frag.opcode;
+                        let compressed = frag.compressed;
+                        let buffer = std::mem::take(&mut frag.buffer);
                         frag.reset();
+                        drop(frag);
+                        let msg = self.deliver_message(opcode, buffer, compressed)?;
                         return Ok(Some(msg));
                     }
                 }
