@@ -25,3 +25,11 @@ empty_line_after_doc_comments = "deny"
 never_loop = "deny"
 useless_conversion = "deny"
 double_ended_iterator_last = "deny"
+
+# Maximize runtime speed of release builds and benchmarks.
+# Tests run under the (unaffected) dev profile, so panic unwinding is preserved.
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true

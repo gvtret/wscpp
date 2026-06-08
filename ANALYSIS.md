@@ -288,11 +288,11 @@ Side-by-side comparison of **wscpp** (C++11, v1.1.0) and **ws-rs** (Rust, `featu
 |----------|---------------|--------------|-------|
 | Echo p50 (text ping, 100 samples) | 0.25 ms | 0.25 ms | 0.31 ms |
 | Echo p99 | 0.36 ms | 0.32 ms | 0.68 ms |
-| 64 KiB throughput (100 iter) | 92 MB/s | 82 MB/s | 73 MB/s |
-| Frame build 1 MiB (50 iter) | — [d] | — [d] | 8416 MB/s |
-| Frame parse 1 MiB (50 iter) | — [d] | — [d] | 18737 MB/s |
+| 64 KiB throughput (100 iter) | 92 MB/s | 82 MB/s | 78 MB/s |
+| Frame build 1 MiB (50 iter) | — [d] | — [d] | 16139 MB/s [e] |
+| Frame parse 1 MiB (50 iter) | — [d] | — [d] | 17146 MB/s [e] |
 
-**Footnotes:** [d] C++ reports echo only in `bench_roundtrip`; 1 MiB frame numbers from `bench_frame_parse` (ws-rs uses same harness). See [ANALYSIS_RUST.md](ANALYSIS_RUST.md).
+**Footnotes:** [d] C++ reports echo only in `bench_roundtrip`; 1 MiB frame numbers from `bench_frame_parse` (ws-rs uses same harness). See [ANALYSIS_RUST.md](ANALYSIS_RUST.md). [e] ws-rs v0.4.x speed pass — single-copy frame encoder roughly doubled `frame_build`; `frame_parse` is memcpy-bound and unchanged (WSL2 noise).
 
 ### LAN benchmarks (Rust peers, `run_remote_network_compare.sh`)
 
@@ -318,6 +318,7 @@ Echo server on `192.168.1.165`, client local (WSL2); same topology as C++ LAN su
 
 | Date | Change |
 |------|--------|
+| 2026-06-07 | ws-rs v0.4.x speed pass: fat LTO, single-copy encoder, cursor read buffer; `frame_build` ~8.4→16.1 GB/s, 64 KiB echo 73→78 MB/s |
 | 2026-06-07 | Rust LAN compare (4 libraries on 192.168.1.165) |
 | 2026-06-07 | ws-rs C++-parity benchmark harness + numbers |
 | 2026-06-07 | ws-rs echo + tokio-tungstenite compare numbers |

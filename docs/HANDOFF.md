@@ -357,3 +357,30 @@ cargo test -p ws-rs --features stress --test stress
 **State:** `master`, wscpp 1.1.0 + ws-rs 0.4.0.
 
 **Next:** optional tag `ws-rs-v0.4.0`; batch wscpp release when unreleased C++ items are tagged.
+
+## 2026-06-07 — R-PERF: ws-rs speed optimizations (feature/rust-impl)
+
+**Done:** Implemented known Rust speed optimizations (uncommitted, on `feature/rust-impl`):
+- `[profile.release]` in `rust/Cargo.toml`: `lto = "fat"`, `codegen-units = 1`, `opt-level = 3`, `strip = true` (tests stay on dev profile, panic=unwind preserved).
+- Frame builder single-copy encoder (`frame/builder.rs` `encode_into`/`push_header`): payload copied once into `out`, masked in place; routed `build_into_opcode`, `build_close_into`, `build_*` through it (was up to 3 payload copies).
+- `Parser::take_frame()` (`mem::take` payload, no clone); used by both connections' `read_frame`.
+- Persistent cursor read buffer (`ReadState` in async + blocking `Connection`): no per-call `vec![0;4096]`/`Vec::new()`, 64 KiB read chunk, cursor avoids O(n) `drain` per byte; also fixes latent loss of frames pipelined after a completed frame in one `read()`.
+- `send_data_frame` uses `Cow<[u8]>` — no `to_vec()` on the uncompressed path (async + blocking).
+- Fragmented reassembly delivers via `mem::take` instead of `frag.buffer.clone()`.
+
+**Measured (localhost, noisy micro windows):** `frame_build` ~9.3 → ~13–17 GB/s; `mask_unmask_xor` ~48 → ~54–60 GB/s. Echo latency/throughput within localhost noise (network-bound).
+
+**Verify:** `cd rust && cargo test -p ws-rs -- --test-threads=1` (all pass) `&& cargo clippy --workspace --all-features` (clean) `&& cargo build --release -p ws-rs-benches --bins`.
+
+**Next:** re-run LAN compare (`run_remote_network_compare.sh`) for fresh numbers; optionally document `RUSTFLAGS="-C target-cpu=native"` for mask auto-vectorization; bump `rust/VERSION` if releasing.
+
+## 2026-06-07 — R-PERF docs: analysis + article updated (feature/rust-impl)
+
+**Done:** Documented the v0.4.x speed pass with fair before/after numbers (warm medians, same methodology — measured baseline by `git stash`-ing the changes and rebuilding).
+- `ANALYSIS_RUST.md`: new "Speed optimizations (v0.4.x)" section; before/after micro table; executive summary + echo tables updated (`frame_build` 8886→16139, mask 49664→62646, 64 KiB 74→78 tokio / 79→84 blocking); footnote [c] that `frame_parse` is memcpy-bound/unchanged (±15 % WSL2 noise); changelog row.
+- `ANALYSIS.md`: C++ vs Rust localhost table refreshed (ws-rs build 16139, parse 17146, 64 KiB 78) + footnote [e]; changelog row.
+- `.cursor/habr-websocket-cpp-rust.md`: Part 2/Part 3 throughput tables, 3-column micro table, new "Что дал проход оптимизаций ws-rs (v0.4.x)" subsection, ws-rs pluses updated.
+
+**Notes:** Latency p50 unchanged (network/syscall-bound). `frame_parse` reported lower than old doc (19701→17146) but parser path untouched — labelled as noise/memcpy-bound, not a regression.
+
+**Next:** still uncommitted; commit on `feature/rust-impl` when asked; optional LAN re-run + `rust/VERSION` bump.

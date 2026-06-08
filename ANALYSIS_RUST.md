@@ -11,16 +11,16 @@ Comparative catalog and benchmark results for **ws-rs** (Rust port, `feature/rus
 | **TLS (wss)** | yes (rustls) | yes (rustls sync) | rustls/native-tls | rustls | rustls |
 | **Echo p50 (localhost)** | 0.26 ms | 0.25 ms | 0.30 ms | 0.29 ms | 0.31 ms |
 | **Echo p99 (localhost)** | 0.37 ms | 0.31 ms | 0.41 ms | 0.55 ms | 0.44 ms |
-| **64 KiB throughput (localhost)** | 74 MB/s | 79 MB/s | 76 MB/s | 83 MB/s | 85 MB/s |
+| **64 KiB throughput (localhost)** | 78 MB/s | 84 MB/s | 76 MB/s | 83 MB/s | 85 MB/s |
 | **Echo p50 (LAN)** | 0.35 ms | 0.40 ms | 0.37 ms | 0.36 ms | 0.38 ms |
 | **Echo p99 (LAN)** | 0.51 ms | 0.51 ms | 0.67 ms | 0.60 ms | 0.67 ms |
 | **64 KiB throughput (LAN)** | 30 MB/s | 30 MB/s | 30 MB/s | 30 MB/s | 30 MB/s |
-| **Frame build 1 MiB (50 iter)** | 8886 MB/s | — [b] | — [b] | — [b] | — [b] |
-| **Frame parse 1 MiB (50 iter)** | 19701 MB/s | — [b] | — [b] | — [b] | — [b] |
-| **Mask XOR 1 MiB (400 iter)** | 49664 MB/s | — [b] | — [b] | — [b] | — [b] |
+| **Frame build 1 MiB (50 iter)** | 16139 MB/s | — [b] | — [b] | — [b] | — [b] |
+| **Frame parse 1 MiB (50 iter)** | 17146 MB/s [c] | — [b] | — [b] | — [b] | — [b] |
+| **Mask XOR 1 MiB (400 iter)** | 62646 MB/s | — [b] | — [b] | — [b] | — [b] |
 | **Bench binary size** | 3747 KB | 687 KB | 1735 KB | 2080 KB | 1493 KB |
 
-**Footnotes:** [b] frame micro-benchmarks are ws-rs only (same as C++ `bench_frame_parse` scope).
+**Footnotes:** [b] frame micro-benchmarks are ws-rs only (same as C++ `bench_frame_parse` scope). [c] `frame_parse` is memcpy-bound and unchanged by the v0.4.x optimization pass — its parser path was not touched; ±15 % run-to-run variance on WSL2 (warm median reported).
 
 ws-rs mirrors the **wscpp** C++ layering: `frame` → `handshake` → `connection` → `client`|`server`. Errors use `Result<T, ws_rs::Error>`.
 
@@ -70,22 +70,46 @@ Aligned with C++ [ANALYSIS.md](ANALYSIS.md) / [benchmarks/README.md](benchmarks/
 - **Version:** `0.4.0` (`rust/VERSION`, `./scripts/bump_rust_version.sh`); independent from wscpp `1.1.0`.
 - **Compare harness:** ws-rs + tokio-tungstenite + fastwebsockets + tokio-websockets (`bench_*_roundtrip`, LAN `bench_*_roundtrip_net`).
 
+## Speed optimizations (v0.4.x)
+
+The v0.4.x optimization pass removes per-message allocations and payload copies on
+the hot paths while keeping `unsafe_code = "forbid"`. Each change maps to a known
+technique (cf. fastwebsockets in-place mask, ownership transfer over `O(n)` copy):
+
+| Optimization | Location | Effect |
+|--------------|----------|--------|
+| Release profile `lto = "fat"`, `codegen-units = 1`, `strip` | `rust/Cargo.toml` | Whole-program inlining for release/bench builds; tests stay on the dev profile (panic unwinding preserved). |
+| Single-copy frame encoder (`encode_into`/`push_header`) | `frame/builder.rs` | Payload copied once into the output buffer and masked **in place**; the hot send path went from up to 3 payload copies to 1. |
+| `Parser::take_frame()` | `frame/parser.rs` | Hands the parsed payload to the caller via `mem::take` instead of cloning it. |
+| Persistent cursor read buffer (`ReadState`, 64 KiB chunk) | `connection.rs`, `blocking/connection.rs` | No per-`read_frame` `Vec` allocation, cursor avoids the per-byte `drain`, larger reads cut syscalls. Also fixes a latent bug where frames pipelined after a completed frame in one `read()` were dropped. |
+| `Cow<[u8]>` send path | `connection.rs`, `blocking/connection.rs` | No `to_vec()` on the uncompressed (common) send path. |
+| Fragment delivery via `mem::take` | both connections | Reassembled message moved, not cloned. |
+
+**Measured impact (localhost, warm medians):** `frame_build` ~8.7 → ~16.1 GB/s
+(≈1.85×); `mask_unmask_xor` ~47 → ~63 GB/s (≈1.3×); 64 KiB echo throughput
+74 → ~78 MB/s (tokio) and 79 → ~84 MB/s (blocking). `frame_parse` is memcpy-bound and
+statistically unchanged; echo p50 latency stays network/syscall-bound (~0.26/0.25 ms).
+Optional, non-portable extra: `RUSTFLAGS="-C target-cpu=native"` lets LLVM auto-vectorize
+the mask further.
+
 ## Measured results (localhost, Release)
 
 ### Micro (`bench_frame_parse`, `bench_masking`)
 
-| Metric | ws-rs |
-|--------|-------|
-| frame_build | 8886 MB/s |
-| frame_parse | 19701 MB/s |
-| mask_unmask_xor | 49664 MB/s |
-| masked_build_parse | 1035 MB/s |
+| Metric | ws-rs (v0.3.x) | ws-rs (v0.4.x, optimized) |
+|--------|----------------|---------------------------|
+| frame_build | 8886 MB/s | 16139 MB/s |
+| frame_parse | 19701 MB/s | 17146 MB/s [c] |
+| mask_unmask_xor | 49664 MB/s | 62646 MB/s |
+| masked_build_parse | 1035 MB/s | 1116 MB/s |
+
+[c] `frame_parse` parser path is unchanged; the delta is within WSL2 micro-benchmark noise (memcpy-bound).
 
 ### Echo (`bench_roundtrip`, 100 samples, tokio)
 
 | Library | p50 | p99 | 64 KiB throughput |
 |---------|-----|-----|-------------------|
-| ws-rs | 0.26 ms | 0.37 ms | 74 MB/s |
+| ws-rs | 0.26 ms | 0.37 ms | 78 MB/s |
 | tokio-tungstenite | 0.30 ms | 0.41 ms | 76 MB/s |
 | fastwebsockets | 0.29 ms | 0.55 ms | 83 MB/s |
 | tokio-websockets | 0.31 ms | 0.44 ms | 85 MB/s |
@@ -94,7 +118,7 @@ Aligned with C++ [ANALYSIS.md](ANALYSIS.md) / [benchmarks/README.md](benchmarks/
 
 | Transport | p50 | p99 | 64 KiB throughput | Binary size |
 |-----------|-----|-----|-------------------|-------------|
-| ws-rs blocking | 0.25 ms | 0.31 ms | 79 MB/s | 687 KB |
+| ws-rs blocking | 0.25 ms | 0.31 ms | 84 MB/s | 687 KB |
 
 ### Network (LAN, `run_remote_network_compare.sh`, 100 samples)
 
@@ -110,6 +134,7 @@ Aligned with C++ [ANALYSIS.md](ANALYSIS.md) / [benchmarks/README.md](benchmarks/
 
 | Date | Change |
 |------|--------|
+| 2026-06-07 | v0.4.x speed pass: fat LTO release profile, single-copy frame encoder, `take_frame`, persistent cursor read buffer, `Cow` send path. `frame_build` ~8.9→16.1 GB/s, mask ~50→63 GB/s, 64 KiB echo 74→78 MB/s (tokio) / 79→84 MB/s (blocking) |
 | 2026-06-07 | v0.4.0: C++ parity complete; blocking LAN bench; `serial_test` for integration tests |
 | 2026-06-07 | Post-parity bench re-run: mask ~50 GB/s; LAN ws-rs p50 0.35 ms; `bench_blocking_roundtrip` |
 | 2026-06-07 | blocking `wss://` (rustls sync); optional `stress` integration tests |

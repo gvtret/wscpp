@@ -167,6 +167,17 @@ impl Parser {
         }
     }
 
+    /// Take ownership of the completed frame's payload, avoiding a copy.
+    ///
+    /// The parser's internal buffer is left empty; the next frame reallocates it.
+    /// Prefer this over [`frame`](Self::frame) in hot paths where the payload is consumed.
+    pub fn take_frame(&mut self) -> Frame {
+        Frame {
+            header: self.header.clone(),
+            payload: std::mem::take(&mut self.buffer),
+        }
+    }
+
     fn parse_header(&mut self, data: &[u8], consumed: &mut usize) -> ParseResult {
         if data.len() < 2 {
             return ParseResult::Incomplete;
