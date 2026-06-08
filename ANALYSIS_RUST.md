@@ -18,9 +18,9 @@ Comparative catalog and benchmark results for **ws-rs** (Rust port, `feature/rus
 | **Frame build 1 MiB (50 iter)** | 16139 MB/s | — [b] | — [b] | — [b] | — [b] |
 | **Frame parse 1 MiB (50 iter)** | 17146 MB/s [c] | — [b] | — [b] | — [b] | — [b] |
 | **Mask XOR 1 MiB (400 iter)** | 62646 MB/s | — [b] | — [b] | — [b] | — [b] |
-| **Bench binary size** | 3747 KB | 687 KB | 1735 KB | 2080 KB | 1493 KB |
+| **Bench binary size** | 2311 KB‡ | 1895 KB‡ | 856 KB | 1037 KB | 779 KB |
 
-**Footnotes:** [b] frame micro-benchmarks are ws-rs only (same as C++ `bench_frame_parse` scope). [c] `frame_parse` is memcpy-bound and unchanged by the v0.4.x optimization pass — its parser path was not touched; ±15 % run-to-run variance on WSL2 (warm median reported).
+**Footnotes:** [b] frame micro-benchmarks are ws-rs only (same as C++ `bench_frame_parse` scope). [c] `frame_parse` is memcpy-bound and unchanged by the v0.4.x optimization pass — its parser path was not touched; ±15 % run-to-run variance on WSL2 (warm median reported). [‡] ELF size of the bench binary built with `cargo build --release -p ws-rs-benches --bins`; rustls, ring and flate2 are linked **statically** into the file. This is why Rust ELFs are larger than the C++ wscpp ELF (~286 KB), which links OpenSSL/zlib dynamically — the comparison is ELF-vs-ELF, not total on-disk footprint.
 
 ws-rs mirrors the **wscpp** C++ layering: `frame` → `handshake` → `connection` → `client`|`server`. Errors use `Result<T, ws_rs::Error>`.
 
@@ -118,7 +118,7 @@ the mask further.
 
 | Transport | p50 | p99 | 64 KiB throughput | Binary size |
 |-----------|-----|-----|-------------------|-------------|
-| ws-rs blocking | 0.25 ms | 0.31 ms | 84 MB/s | 687 KB |
+| ws-rs blocking | 0.25 ms | 0.31 ms | 84 MB/s | 1895 KB‡ |
 
 ### Network (LAN, `run_remote_network_compare.sh`, 100 samples)
 

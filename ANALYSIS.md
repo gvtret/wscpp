@@ -14,9 +14,9 @@ Comparative catalog and benchmark results for **wscpp** (v1.1.0). Numbers below 
 | **Echo / connect p99 (LAN)** | 1.24 ms | 0.77 ms | 2.01 ms | 0.85 ms | 3.55 ms | 0.86 ms | 0.61 ms | 30 ms connect |
 | **64 KiB throughput (localhost)** | 92 MB/s | 82 MB/s | — [a] | 62 MB/s | — [a] | 68 MB/s | — [a] | — [b] |
 | **64 KiB throughput (LAN)** | 27 MB/s | 28 MB/s | — [a] | 31 MB/s | — [a] | 29 MB/s | — [a] | — [b] |
-| **Bench binary size** | 281 KB | 383 KB | 687 KB | 473 KB | 126 KB* | 668 KB | 675 KB | 370 KB |
+| **Bench binary size** | 286 KB† | 383 KB† | 687 KB | 473 KB | 126 KB* | 667 KB | 675 KB | 369 KB |
 
-**Executive summary footnotes:** [a] compare target measures echo only (no 64 KiB loop in `bench_*_roundtrip`). [b] client-only — harness runs connect latency, not echo (`bench_easywsclient_connect`). Full tag list: [Table legend](#table-legend).
+**Executive summary footnotes:** [a] compare target measures echo only (no 64 KiB loop in `bench_*_roundtrip`). [b] client-only — harness runs connect latency, not echo (`bench_easywsclient_connect`). [*] libwebsockets ELF links the system shared library — not comparable to statically linked peers. [†] wscpp ELF size only; OpenSSL and zlib are linked dynamically (not part of the file), so the on-disk footprint with crypto is larger. Sizes measured with `WSCPP_ENABLE_LOGGING=OFF` (default logging adds ~360 KB). Full tag list: [Table legend](#table-legend).
 
 wscpp ships two transports on Linux: **POSIX sockets + OpenSSL** (`WSCPP_USE_ASIO=OFF`, default for minimal footprint) and **standalone ASIO** (`WSCPP_USE_ASIO=ON`). Echo latency is in the same band for both; linux transport yields a smaller `bench_roundtrip` binary (~27% less than ASIO).
 
@@ -60,7 +60,7 @@ Public API uses `std::error_code` throughout — no exceptions.
 | TLS | Native or via dependency |
 | Async model | ASIO, POSIX poll, callbacks |
 | Dependencies | Boost, OpenSSL, zlib |
-| Footprint | Static binary size of bench target |
+| Footprint | ELF size of bench target (OpenSSL/zlib linked dynamically, not in the file) |
 | Error handling | wscpp: `std::error_code`; peers vary |
 
 ### Benchmark scenarios
@@ -138,7 +138,7 @@ Tier 2/3 capability dashes use tags [c]–[e] from [Table legend](#table-legend)
 **Strengths:**
 
 - **`C++11`**-only, no Boost; reproducible builds via FetchContent ASIO or linux-only OpenSSL path
-- Dual transport: linux POSIX (281 KB bench) or ASIO (383 KB bench) vs 473–687 KB peers
+- Dual transport: linux POSIX (286 KB bench ELF) or ASIO (383 KB bench ELF) vs 473–687 KB peers (OpenSSL linked dynamically in all)
 - Explicit layering: frame → connection → client/server; all I/O returns `std::error_code`
 - RFC 6455 regression vectors and 94 automated tests in-tree
 
@@ -156,7 +156,7 @@ Measured with the same harness; only CMake flag `WSCPP_USE_ASIO` differs.
 
 | Transport | Echo p50 | Echo p99 | 64 KiB throughput | Binary size |
 |-----------|----------|----------|-------------------|-------------|
-| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.25 ms | 0.36 ms | 92 MB/s | 281 KB |
+| **linux POSIX** (`WSCPP_USE_ASIO=OFF`) | 0.25 ms | 0.36 ms | 92 MB/s | 286 KB |
 | **ASIO** (`WSCPP_USE_ASIO=ON`) | 0.25 ms | 0.32 ms | 82 MB/s | 383 KB |
 
 Micro-benchmarks (`bench_frame_parse`, `bench_masking`) are transport-agnostic (frame layer only). Masking uses 64/32/8/4-byte XOR unrolling (`detail/mask.hpp`); connection reuses an outbound frame buffer.
@@ -211,9 +211,9 @@ Per-library targets: `compare_net_servers` (remote), `compare_net_clients` (loca
 | **websocketpp** 0.8.2 | 0.31 ms | 0.59 ms | — [a] | 687 KB |
 | **IXWebSocket** 11.4.6 | 0.28 ms | 0.68 ms | 62 MB/s | 473 KB |
 | **libwebsockets** 4.3.5 | 0.26 ms | 0.40 ms | — [a] | 126 KB* |
-| **Boost.Beast** (Boost 1.88) | 0.25 ms | 0.32 ms | 68 MB/s | 668 KB |
+| **Boost.Beast** (Boost 1.88) | 0.25 ms | 0.32 ms | 68 MB/s | 667 KB |
 | **Simple-WebSocket-Server** | 0.28 ms | 0.46 ms | — [a] | 675 KB |
-| **easywsclient** (connect) | 1.17 ms | 1.88 ms | — [b] | 370 KB |
+| **easywsclient** (connect) | 1.17 ms | 1.88 ms | — [b] | 369 KB |
 
 \* libwebsockets bench binary links the system shared library (`libwebsockets.so`); size is not directly comparable to statically linked peers.
 
@@ -245,7 +245,7 @@ cmake --build build-asio --target run_benchmarks
 
 | Use case | Suggestion |
 |----------|------------|
-| Embedded / minimal deps, **`C++11`** | **wscpp** linux transport (281 KB echo binary, no ASIO) |
+| Embedded / minimal deps, **`C++11`** | **wscpp** linux transport (286 KB echo ELF, no ASIO; OpenSSL dynamic) |
 | Cross-platform ASIO parity | **wscpp** with `WSCPP_USE_ASIO=ON` |
 | No exceptions in app code | **wscpp** (`std::error_code` API) |
 | Client-only, smallest code | **easywsclient** (~600 LOC; blocking) |

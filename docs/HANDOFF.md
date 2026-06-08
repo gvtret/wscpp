@@ -384,3 +384,14 @@ cargo test -p ws-rs --features stress --test stress
 **Notes:** Latency p50 unchanged (network/syscall-bound). `frame_parse` reported lower than old doc (19701→17146) but parser path untouched — labelled as noise/memcpy-bound, not a regression.
 
 **Next:** still uncommitted; commit on `feature/rust-impl` when asked; optional LAN re-run + `rust/VERSION` bump.
+
+## 2026-06-08 — Binary-size re-measure + ELF/linking caveats
+
+**Done:** Re-measured all bench binary sizes on this host (GCC 15.2, Release; C++ with `WSCPP_ENABLE_LOGGING=OFF`; Rust via `cargo build --release -p ws-rs-benches --bins`) and corrected stale/wrong numbers in the analysis docs.
+- `ANALYSIS_RUST.md`: ws-rs tokio 3747→**2311 KB**, ws-rs blocking 687→**1895 KB** (the 687 was a copy/measure error — it equalled websocketpp's C++ size), tokio-tungstenite 1735→**856 KB**, fastwebsockets 2080→**1037 KB**, tokio-websockets 1493→**779 KB**. Added footnote `‡`: sizes are ELF; rustls/ring/flate2 are linked statically, so Rust ELFs are larger than the C++ ELF (which links OpenSSL/zlib dynamically) — ELF-vs-ELF, not total footprint.
+- `ANALYSIS.md`: wscpp linux 281→**286 KB**, Beast 668→**667 KB**, easywsclient 370→**369 KB**. Added footnote `†` (wscpp ELF only; OpenSSL/zlib dynamic; measured with logging off) and changed the "Footprint" dimension wording from "Static binary size" to "ELF size … OpenSSL/zlib linked dynamically".
+- `.cursor/habr-websocket-cpp-rust.md` (gitignored, not committed): same corrected sizes, new "Размер бинарника: что именно сравниваем" methodology block (ELF vs dynamic `.so`), language proofread, all `ё` removed, fixed non-term "инлайнинг".
+
+**Notes:** ldd confirms C++ bench links `libssl/libcrypto/libz/libstdc++` dynamically; Rust benches link only `libc`/`libgcc_s` (TLS/deflate bundled in ELF). The earlier `687 KB binary` line in the 2026-06-07 R-F5 entry above is kept as-is (append-only log); the corrected value lives in `ANALYSIS_RUST.md`.
+
+**Next:** optional — re-measure with default logging ON to document the ~360 KB delta; add the same linking caveat to `benchmarks/README.md` if desired.
